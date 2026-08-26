@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#07080c">
-<title>DESTINY v2.1 — DEEP MATCHING</title>
+<title>DESTINY v2.2 — DEEP MATCHING</title>
 <link rel="manifest" href="./manifest.webmanifest">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -74,7 +74,7 @@ textarea,input,select{width:100%;background:#0e1016;border:1px solid var(--line)
     <button id="forgotPasswordBtn" class="forgot-btn" type="button" onclick="requestPasswordReset()">Mot de passe oublié ?</button>
     <button class="btn" id="authBtn" onclick="submitAuth()">SE CONNECTER</button>
     <div class="auth-msg" id="authMsg"></div>
-    <div class="notice" style="margin-top:18px;text-align:left">v2.1 SIGNUP FIX : date de naissance transmise explicitement à Supabase, contrôle 18+ actif et session persistante.</div>
+    <div class="notice" style="margin-top:18px;text-align:left">v2.2 BIRTHDATE FIX : format de date normalisé avant envoi à Supabase, contrôle 18+ actif.</div>
   </div>
 </div>
 
@@ -436,8 +436,28 @@ function setSignupBirthLimit(){
  el.max=`${yyyy}-${mm}-${dd}`;
 }
 function withTimeout(promise,ms,label="Opération"){return Promise.race([promise,new Promise((_,reject)=>setTimeout(()=>reject(new Error(label+" trop longue. Vérifie ta connexion internet puis réessaie.")),ms))])}
+
+function normalizeBirthDateValue(v){
+  if(!v)return "";
+  v=String(v).trim();
+
+  // Format natif HTML date : YYYY-MM-DD
+  if(/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
+
+  // Certains navigateurs / champs peuvent renvoyer DD/MM/YYYY
+  const m=v.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if(m){
+    const dd=String(m[1]).padStart(2,"0");
+    const mm=String(m[2]).padStart(2,"0");
+    const yyyy=m[3];
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  return "";
+}
+
 async function submitAuth(){
- const email=document.getElementById("aEmail").value.trim().toLowerCase(),pw=document.getElementById("aPassword").value,name=document.getElementById("aName").value.trim(),birthDate=document.getElementById("aBirthDate")?.value||"",msg=document.getElementById("authMsg"),btn=document.getElementById("authBtn");
+ const email=document.getElementById("aEmail").value.trim().toLowerCase(),pw=document.getElementById("aPassword").value,name=document.getElementById("aName").value.trim(),birthDate=normalizeBirthDateValue(document.getElementById("aBirthDate")?.value||""),msg=document.getElementById("authMsg"),btn=document.getElementById("authBtn");
  if(!email||!email.includes("@")){msg.textContent="Entre une adresse e-mail valide.";return} if(!pw||pw.length<6){msg.textContent="Le mot de passe doit contenir au moins 6 caractères.";return}
  msg.textContent=authState.mode==="signup"?"Création du compte…":"Connexion sécurisée…";btn.disabled=true;
  try{
