@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#07080c">
-<title>DESTINY v2.3 — DEEP MATCHING</title>
+<title>DESTINY v2.4 — DEEP MATCHING</title>
 <link rel="manifest" href="./manifest.webmanifest">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -47,7 +47,7 @@ textarea,input,select{width:100%;background:#0e1016;border:1px solid var(--line)
 .v2-options{display:grid;gap:9px}
 .v2-option{width:100%;text-align:left;background:#0e1016;border:1px solid var(--line);border-radius:15px;color:#eee;padding:14px 15px;font-size:14px}
 .v2-option.selected{border-color:var(--gold);background:rgba(208,176,113,.12);color:#fff}
-.v2-importance{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.v2-importance{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
 .v2-importance button{background:#11131a;border:1px solid var(--line);border-radius:13px;padding:11px 8px;color:#bbb;font-size:11px}
 .v2-importance button.selected{border-color:var(--violet);background:rgba(145,129,255,.13);color:#fff}
 .v2-nav{display:grid;grid-template-columns:1fr 1.4fr;gap:10px;margin-top:18px}
@@ -74,7 +74,7 @@ textarea,input,select{width:100%;background:#0e1016;border:1px solid var(--line)
     <button id="forgotPasswordBtn" class="forgot-btn" type="button" onclick="requestPasswordReset()">Mot de passe oublié ?</button>
     <button class="btn" id="authBtn" onclick="submitAuth()">SE CONNECTER</button>
     <div class="auth-msg" id="authMsg"></div>
-    <div class="notice" style="margin-top:18px;text-align:left">v2.3 BIRTHDATE FINAL : date de naissance normalisée et transmise à Supabase, contrôle 18+ actif.</div>
+    <div class="notice" style="margin-top:18px;text-align:left">v2.4 DNA V2 : importance simplifiée à Flexible · Très important · Non négociable.</div>
   </div>
 </div>
 
@@ -290,7 +290,6 @@ textarea,input,select{width:100%;background:#0e1016;border:1px solid var(--line)
       <div class="section-title" style="margin-top:20px">IMPORTANCE POUR TOI</div>
       <div class="v2-importance" id="v2Importance">
         <button data-v="flexible" onclick="setV2Importance('flexible')">Flexible</button>
-        <button data-v="important" onclick="setV2Importance('important')">Important</button>
         <button data-v="very_important" onclick="setV2Importance('very_important')">Très important</button>
         <button data-v="non_negotiable" onclick="setV2Importance('non_negotiable')">🔒 Non négociable</button>
       </div>
@@ -758,7 +757,7 @@ function renderV2Question(){
   const q=visible[v2State.index];
   const saved=v2State.answers[q.question_key];
   v2State.selected=Array.isArray(saved?.answer)?[...saved.answer]:[];
-  v2State.importance=saved?.importance || "flexible";
+  v2State.importance=(saved?.importance==="important"?"very_important":saved?.importance) || "flexible";
 
   document.getElementById("v2Category").textContent=V2_CATEGORY_LABELS[q.category]||q.category;
   document.getElementById("v2Qnum").textContent=`QUESTION ${v2State.index+1} / ${visible.length}`;
