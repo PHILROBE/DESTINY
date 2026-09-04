@@ -1843,6 +1843,24 @@ async function forceChatSync(){
   }
 }
 
+async function sendChatReceipt(eventName,clientNonce,recipientId){
+  const m=data.lastMatch;
+  if(!chatState.channel || !m?.matchId || !clientNonce || !authState.user)return;
+  try{
+    await chatState.channel.send({
+      type:"broadcast",
+      event:eventName,
+      payload:{
+        match_id:m.matchId,
+        sender_id:authState.user.id,
+        recipient_id:recipientId||chatState.peerId||m.userId,
+        client_nonce:clientNonce,
+        sent_at:Date.now()
+      }
+    });
+  }catch(e){console.warn("Chat receipt broadcast",e)}
+}
+
 function startChatPolling(){
   if(chatState.pollTimer){
     clearTimeout(chatState.pollTimer);
@@ -1914,10 +1932,36 @@ async function startChatRealtime(){
         if(payload.sender_id===authState.user?.id)return;
         setPeerTyping(false);
         appendLiveMessage(payload);
+
+        // v4.4 : quand la conversation est déjà ouverte, l'accusé de lecture
+        // repart directement sur LE MÊME canal temps réel que le message.
+        // On ne dépend donc plus du canal de badge pour afficher les ✓✓.
+        if(payload.client_nonce){
+          sendChatReceipt("receipt-delivered",payload.client_nonce,payload.sender_id).catch(()=>{});
+          setTimeout(()=>sendChatReceipt("receipt-read",payload.client_nonce,payload.sender_id).catch(()=>{}),35);
+        }
         setTimeout(()=>markCurrentChatRead().catch(()=>{}),80);
         // Le rafraîchissement DB reste un filet de sécurité, mais l'affichage
         // ne dépend plus de lui.
         scheduleRealtimeRefresh(250);
+      }
+    )
+    .on(
+      "broadcast",
+      {event:"receipt-delivered"},
+      ({payload})=>{
+        if(!payload || payload.match_id!==m.matchId)return;
+        if(payload.recipient_id!==authState.user?.id || !payload.client_nonce)return;
+        updateMessageReceipt(payload.client_nonce,"delivered");
+      }
+    )
+    .on(
+      "broadcast",
+      {event:"receipt-read"},
+      ({payload})=>{
+        if(!payload || payload.match_id!==m.matchId)return;
+        if(payload.recipient_id!==authState.user?.id || !payload.client_nonce)return;
+        updateMessageReceipt(payload.client_nonce,"read");
       }
     )
     .on(
