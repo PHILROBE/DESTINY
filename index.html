@@ -1,0 +1,1714 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#07080c">
+<title>DESTINY v3.1 — UNREAD MESSAGES</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--bg:#07080c;--panel:#11131a;--gold:#d0b071;--violet:#9181ff;--text:#f6f3ec;--muted:#999ba6;--line:#292c37}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(600px 300px at 50% -80px,#282033 0,#07080c 65%);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif}
+.app{max-width:560px;margin:auto;min-height:100vh;padding:18px 18px 100px}.view{display:none}.view.active{display:block}.view.center{display:none}.view.center.active{display:flex}
+.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}.brand{letter-spacing:6px;font-size:22px;font-weight:300}.iconbtn{width:42px;height:42px;border-radius:14px;background:var(--panel);border:1px solid var(--line);color:#fff}
+.hero{padding:22px 4px}.eyebrow{font-size:11px;color:var(--muted);letter-spacing:1.8px}.hello{font-size:32px;font-weight:300;margin:7px 0}.sub{color:var(--muted);line-height:1.5}
+.card{background:linear-gradient(145deg,rgba(23,25,35,.95),rgba(13,15,21,.95));border:1px solid var(--line);border-radius:22px;padding:20px;margin:13px 0;box-shadow:0 15px 35px rgba(0,0,0,.18)}
+.dna-card{position:relative;overflow:hidden}.dna-card:after{content:"";position:absolute;width:180px;height:180px;border-radius:50%;right:-70px;top:-70px;background:rgba(145,129,255,.12);filter:blur(10px)}
+.score{font-size:76px;font-weight:200;line-height:1}.scoreline{display:flex;align-items:end;justify-content:space-between}.badge{padding:7px 10px;border-radius:99px;background:rgba(208,176,113,.12);color:var(--gold);font-size:11px}
+.progress{height:6px;background:#252833;border-radius:20px;overflow:hidden;margin-top:18px}.progress i{display:block;height:100%;background:linear-gradient(90deg,var(--gold),var(--violet));border-radius:20px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.mini{min-height:118px}.mini strong{font-size:27px;font-weight:300;display:block;margin:9px 0}.muted{color:var(--muted);font-size:13px;line-height:1.5}
+.btn{border:0;border-radius:15px;padding:15px 16px;background:var(--gold);color:#111;font-weight:800;width:100%;font-size:14px}.btn.dark{background:#191b24;color:#eee;border:1px solid var(--line)}
+.section-title{font-size:13px;letter-spacing:1.4px;color:var(--muted);margin:25px 2px 10px}
+.bars .row{display:grid;grid-template-columns:118px 1fr 38px;gap:8px;align-items:center;margin:13px 0;font-size:12px}.track{height:7px;background:#272a34;border-radius:20px}.track i{display:block;height:100%;border-radius:20px;background:linear-gradient(90deg,var(--gold),var(--violet))}
+.tag{display:inline-block;border:1px solid #343744;border-radius:99px;padding:8px 11px;margin:4px;color:#ddd;font-size:12px}
+textarea,input,select{width:100%;background:#0e1016;border:1px solid var(--line);border-radius:15px;color:#fff;padding:15px;font-size:16px;outline:none} select{appearance:none}.field{margin:13px 0}.field label{display:block;color:var(--muted);font-size:11px;letter-spacing:1.1px;margin:0 0 7px 3px}.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.profile-chip{display:flex;align-items:center;gap:12px}.avatar{width:72px;height:72px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(145deg,rgba(208,176,113,.22),rgba(145,129,255,.22));border:1px solid #3a3d49;font-size:26px;overflow:hidden;position:relative;cursor:pointer;flex:0 0 auto}.avatar img{width:100%;height:100%;object-fit:cover;display:block}.avatar .avatar-fallback{display:grid;place-items:center;width:100%;height:100%}.avatar:after{content:"📷";position:absolute;right:-1px;bottom:-1px;width:25px;height:25px;border-radius:50%;display:grid;place-items:center;background:#191b24;border:1px solid #3a3d49;font-size:12px}.avatar-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}.avatar-mini-btn{border:1px solid var(--line);background:#151720;color:#ddd;border-radius:11px;padding:8px 10px;font-size:11px;cursor:pointer}.avatar-mini-btn.danger{color:#ffb0b0}.avatar-msg{font-size:11px;color:var(--muted);min-height:16px;margin-top:7px}.status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#78d59a;margin-right:6px}.notice{padding:12px 14px;border-radius:14px;background:rgba(208,176,113,.08);border:1px solid rgba(208,176,113,.22);color:#d8d0bd;font-size:12px;line-height:1.5}
+.bottom{position:fixed;bottom:0;left:50%;transform:translateX(-50%);max-width:560px;width:100%;padding:10px 10px calc(10px + env(safe-area-inset-bottom));background:rgba(7,8,12,.92);backdrop-filter:blur(18px);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(5,1fr);gap:4px;z-index:10}.bottom button{background:transparent;border:0;color:#8d8f99;font-size:11px;padding:5px}.bottom button.active{color:var(--gold)}
+.question{text-align:center;padding-top:35px}.qnum{color:var(--gold);font-size:11px;letter-spacing:2px}.qtext{font-size:26px;font-weight:300;line-height:1.4;margin:25px 0}.answers{display:grid;grid-template-columns:repeat(5,1fr);gap:7px}.answers button{height:52px;border-radius:50%;border:1px solid #383b46;background:#11131a;color:#fff;font-size:16px}.answers button:active{transform:scale(.96)}
+.center{min-height:80vh;display:flex;flex-direction:column;justify-content:center;text-align:center;align-items:center}.logo-big{font-size:40px;letter-spacing:8px;font-weight:200}.dna-orb{font-size:70px;margin:20px}.hidden{display:none!important}
+.pill{display:inline-block;padding:6px 10px;border-radius:99px;background:#1a1c26;color:var(--gold);font-size:11px;margin-top:8px}
+.match-orb{width:178px;height:178px;border-radius:50%;display:grid;place-items:center;margin:18px auto;background:radial-gradient(circle at 35% 30%,rgba(208,176,113,.35),rgba(145,129,255,.18) 45%,rgba(17,19,26,.9) 72%);border:1px solid #3b3847;box-shadow:0 0 70px rgba(145,129,255,.13)}
+.match-score{font-size:58px;font-weight:200}.match-name{font-size:28px;font-weight:300;margin:8px 0}.match-lock{font-size:48px}.match-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.metric{padding:14px;border-radius:16px;background:#0e1016;border:1px solid var(--line)}.metric b{display:block;font-size:23px;font-weight:300;margin-top:5px}.match-note{border-left:2px solid var(--gold);padding-left:13px;line-height:1.55}
+.auth-wrap{width:100%;max-width:420px}.password-wrap{position:relative}.password-wrap input{padding-right:58px}.password-toggle{position:absolute;right:7px;top:50%;transform:translateY(-50%);width:44px;height:44px;border:0;background:transparent;color:#c8c9d0;font-size:21px;cursor:pointer;border-radius:12px}.password-toggle:active{background:#191b24}.forgot-btn{display:inline-block;margin:2px 0 13px;background:transparent;border:0;color:var(--gold);font-size:12px;text-decoration:underline;text-underline-offset:3px;cursor:pointer}.auth-tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:18px 0}.auth-tabs button{padding:12px;border-radius:12px;border:1px solid var(--line);background:#11131a;color:var(--muted)}.auth-tabs button.active{color:var(--gold);border-color:rgba(208,176,113,.5)}.auth-msg{min-height:22px;font-size:12px;color:var(--muted);margin-top:10px}.account-row{display:flex;justify-content:space-between;align-items:center;gap:12px}.account-email{font-size:14px;overflow:hidden;text-overflow:ellipsis}.danger{color:#ff9d9d!important}
+@supports(padding:max(0px)){.app{padding-top:max(18px,env(safe-area-inset-top))}}
+
+.verified-card{border:1px solid rgba(208,176,113,.35);background:linear-gradient(145deg,rgba(208,176,113,.08),rgba(145,129,255,.06))}
+.verified-head{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.verified-badge{display:inline-flex;align-items:center;gap:6px;padding:7px 10px;border-radius:99px;font-size:11px;border:1px solid var(--line);background:#151720;color:var(--muted)}
+.verified-badge.ok{border-color:rgba(120,213,154,.45);background:rgba(120,213,154,.10);color:#9be6b5}
+.verified-badge.pending{border-color:rgba(208,176,113,.45);background:rgba(208,176,113,.10);color:var(--gold)}
+.verified-badge.failed{border-color:rgba(255,157,157,.4);background:rgba(255,157,157,.08);color:#ffb0b0}
+
+
+.v2-banner{border:1px solid rgba(208,176,113,.38);background:linear-gradient(145deg,rgba(208,176,113,.10),rgba(145,129,255,.08));}
+.v2-badge{display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(145,129,255,.4);background:rgba(145,129,255,.10);color:#cfc7ff;border-radius:99px;padding:7px 10px;font-size:11px}
+.v2-category{font-size:11px;letter-spacing:1.8px;color:var(--gold);text-transform:uppercase;margin-bottom:10px}
+.v2-question{font-size:24px;line-height:1.25;font-weight:300;margin:14px 0 20px}
+.v2-options{display:grid;gap:9px}
+.v2-option{width:100%;text-align:left;background:#0e1016;border:1px solid var(--line);border-radius:15px;color:#eee;padding:14px 15px;font-size:14px}
+.v2-option.selected{border-color:var(--gold);background:rgba(208,176,113,.12);color:#fff}
+.v2-importance{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.v2-importance button{background:#11131a;border:1px solid var(--line);border-radius:13px;padding:11px 8px;color:#bbb;font-size:11px}
+.v2-importance button.selected{border-color:var(--violet);background:rgba(145,129,255,.13);color:#fff}
+.v2-nav{display:grid;grid-template-columns:1fr 1.4fr;gap:10px;margin-top:18px}
+.v2-sensitive{border:1px solid rgba(255,173,190,.25);background:rgba(255,100,130,.05);padding:12px;border-radius:14px;margin:12px 0;color:#c7aab1;font-size:12px;line-height:1.5}
+.v2-category-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.v2-stat{border:1px solid var(--line);background:#0e1016;border-radius:16px;padding:14px}
+.v2-stat b{display:block;font-size:23px;font-weight:300;margin-top:5px}
+.hidden{display:none!important}
+
+
+/* ============================================================
+   DESTINY v2.8 — PROFIL RÉVÉLÉ APRÈS MATCH MUTUEL
+   ============================================================ */
+.reveal-card{margin-top:14px;border:1px solid rgba(208,176,113,.42);background:linear-gradient(145deg,rgba(208,176,113,.10),rgba(145,129,255,.08))}
+.reveal-head{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+.reveal-avatar{width:84px;height:84px;border-radius:50%;overflow:hidden;display:grid;place-items:center;flex:0 0 auto;background:linear-gradient(145deg,rgba(208,176,113,.22),rgba(145,129,255,.22));border:1px solid #3a3d49;font-size:30px}
+.reveal-avatar img{width:100%;height:100%;object-fit:cover;display:block}
+.reveal-name{font-size:29px;font-weight:300;margin:3px 0}
+.reveal-meta{color:var(--muted);font-size:13px;line-height:1.55}
+.reveal-score{display:inline-flex;align-items:center;gap:7px;margin-top:8px;padding:7px 11px;border-radius:99px;background:rgba(208,176,113,.12);color:var(--gold);font-size:12px;font-weight:700}
+.reveal-bio{margin-top:14px;padding:15px;border-radius:15px;background:#0e1016;border:1px solid var(--line);line-height:1.6;color:#ddd}
+.reveal-cats{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:14px}
+.reveal-cat{padding:12px;border-radius:14px;background:#0e1016;border:1px solid var(--line)}
+.reveal-cat span{display:block;color:var(--muted);font-size:10px;letter-spacing:1.2px;text-transform:uppercase}
+.reveal-cat b{display:block;font-size:21px;font-weight:300;margin-top:4px}
+.reveal-verified{display:inline-flex;align-items:center;gap:6px;margin-top:8px;padding:6px 9px;border-radius:99px;border:1px solid rgba(120,213,154,.35);background:rgba(120,213,154,.08);color:#9be6b5;font-size:10px}
+
+
+/* ============================================================
+   DESTINY v2.9 — PRIVATE CHAT
+   ============================================================ */
+.chat-shell{display:flex;flex-direction:column;min-height:72vh}
+.chat-head-card{display:flex;align-items:center;gap:12px}
+.chat-avatar{width:54px;height:54px;border-radius:50%;overflow:hidden;display:grid;place-items:center;background:linear-gradient(145deg,rgba(208,176,113,.22),rgba(145,129,255,.22));border:1px solid #3a3d49;flex:0 0 auto;font-size:20px}
+.chat-avatar img{width:100%;height:100%;object-fit:cover;display:block}
+.chat-peer{font-size:20px;font-weight:300;margin:0}
+.chat-status{font-size:11px;color:#9be6b5;margin-top:3px}
+.chat-messages{display:flex;flex-direction:column;gap:9px;min-height:360px;max-height:58vh;overflow-y:auto;padding:8px 2px 16px;scroll-behavior:smooth}
+.chat-empty{margin:auto;text-align:center;color:var(--muted);font-size:13px;line-height:1.6;padding:40px 18px}
+.chat-row{display:flex}
+.chat-row.mine{justify-content:flex-end}
+.chat-row.theirs{justify-content:flex-start}
+.chat-bubble{max-width:82%;padding:11px 13px;border-radius:17px;line-height:1.45;font-size:14px;word-wrap:break-word;white-space:pre-wrap}
+.chat-row.mine .chat-bubble{background:linear-gradient(145deg,rgba(208,176,113,.95),rgba(187,151,87,.95));color:#111;border-bottom-right-radius:6px}
+.chat-row.theirs .chat-bubble{background:#171923;border:1px solid var(--line);color:#eee;border-bottom-left-radius:6px}
+.chat-time{font-size:10px;opacity:.7;margin-top:5px}
+.chat-composer{position:sticky;bottom:78px;background:rgba(7,8,12,.96);padding-top:10px}
+.chat-compose-row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end}
+.chat-compose-row textarea{resize:none;min-height:50px;max-height:130px}
+.chat-send{width:52px;height:52px;border:0;border-radius:15px;background:var(--gold);color:#111;font-size:20px;font-weight:800}
+.chat-note{font-size:10px;color:var(--muted);margin-top:7px;text-align:center}
+.chat-open-btn{margin-top:12px}
+
+
+/* ============================================================
+   DESTINY v3.1 — UNREAD MESSAGES
+   ============================================================ */
+.bottom button{position:relative}
+.unread-badge{
+  position:absolute;
+  top:0;
+  right:12%;
+  min-width:18px;
+  height:18px;
+  padding:0 5px;
+  border-radius:99px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  background:#ff5d73;
+  color:#fff;
+  border:2px solid #07080c;
+  font-size:10px;
+  font-weight:800;
+  line-height:1;
+  box-shadow:0 4px 14px rgba(0,0,0,.35);
+}
+.chat-open-btn{position:relative}
+.chat-open-unread{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:22px;
+  height:22px;
+  padding:0 7px;
+  margin-left:8px;
+  border-radius:99px;
+  background:#111;
+  color:var(--gold);
+  font-size:11px;
+  font-weight:900;
+}
+
+</style>
+</head>
+<body>
+<div class="app">
+
+<div id="auth" class="view active center">
+  <div class="auth-wrap">
+    <div class="dna-orb">🧬</div><div class="logo-big">DESTINY</div>
+    <p class="sub">TON COMPTE · TON DNA · TES MATCHS</p>
+    <div class="auth-tabs"><button id="tabLogin" class="active" onclick="authMode('login')">CONNEXION</button><button id="tabSignup" onclick="authMode('signup')">CRÉER UN COMPTE</button></div>
+    <div id="signupName" class="field hidden"><label>PRÉNOM / PSEUDO</label><input id="aName" autocomplete="name" placeholder="Ton prénom"></div>
+    <div id="signupBirth" class="field hidden"><label>DATE DE NAISSANCE · 18+ OBLIGATOIRE</label><input id="aBirthDate" type="date" autocomplete="bday"><div class="muted" style="margin-top:7px">DESTINY est réservé aux personnes âgées de 18 ans ou plus.</div></div>
+    <div class="field"><label>E-MAIL</label><input id="aEmail" type="email" autocomplete="email" placeholder="toi@exemple.com"></div>
+    <div class="field"><label>MOT DE PASSE</label><div class="password-wrap"><input id="aPassword" type="password" autocomplete="current-password" minlength="6" placeholder="6 caractères minimum"><button class="password-toggle" id="passwordToggle" type="button" onclick="togglePassword('aPassword','passwordToggle')" aria-label="Afficher le mot de passe" title="Afficher le mot de passe">👁</button></div></div>
+    <button id="forgotPasswordBtn" class="forgot-btn" type="button" onclick="requestPasswordReset()">Mot de passe oublié ?</button>
+    <button class="btn" id="authBtn" onclick="submitAuth()">SE CONNECTER</button>
+    <div class="auth-msg" id="authMsg"></div>
+    <div class="notice" style="margin-top:18px;text-align:left">v2.4 ADN approfondi : importance simplifiée à Flexible · Très important · Non négociable.</div>
+  </div>
+</div>
+
+<div id="recovery" class="view center">
+  <div class="auth-wrap">
+    <div class="dna-orb">🔐</div><div class="logo-big" style="font-size:28px">NOUVEAU MOT DE PASSE</div>
+    <p class="sub">Choisis un nouveau mot de passe pour ton compte DESTINY.</p>
+    <div class="field"><label>NOUVEAU MOT DE PASSE</label><div class="password-wrap"><input id="newPassword" type="password" autocomplete="new-password" minlength="6" placeholder="6 caractères minimum"><button class="password-toggle" id="newPasswordToggle" type="button" onclick="togglePassword('newPassword','newPasswordToggle')" aria-label="Afficher le mot de passe">👁</button></div></div>
+    <div class="field"><label>CONFIRMER LE MOT DE PASSE</label><div class="password-wrap"><input id="confirmPassword" type="password" autocomplete="new-password" minlength="6" placeholder="Répète le mot de passe"><button class="password-toggle" id="confirmPasswordToggle" type="button" onclick="togglePassword('confirmPassword','confirmPasswordToggle')" aria-label="Afficher le mot de passe">👁</button></div></div>
+    <button class="btn" id="updatePasswordBtn" onclick="updateRecoveredPassword()">ENREGISTRER LE NOUVEAU MOT DE PASSE</button>
+    <div class="auth-msg" id="recoveryMsg"></div>
+  </div>
+</div>
+
+<div id="welcome" class="view center">
+  <div class="dna-orb">🧬</div><div class="logo-big">DESTINY</div>
+  <p class="sub">YOUR STORY · YOUR DNA · YOUR FUTURE</p>
+  <div style="height:30vh"></div>
+  <button class="btn" onclick="begin()">ENTRER DANS DESTINY</button>
+</div>
+
+<div id="home" class="view">
+  <div class="top"><div class="brand">DESTINY</div><button class="iconbtn" onclick="go('dna')">🧬</button></div>
+  <div class="hero"><div class="eyebrow">TON ESPACE PERSONNEL</div><div class="hello" id="hello">Bonjour</div><div class="sub">Ton profil évolue avec toi.</div></div>
+  <div class="card dna-card">
+    <div class="eyebrow">ADN</div>
+    <div class="scoreline"><div class="score" id="homeScore">—</div><div class="badge" id="homeStatus">À CONSTRUIRE</div></div>
+    <div class="progress"><i id="homeProgress"></i></div>
+    <p class="muted" id="homeDesc">Réponds au questionnaire DNA pour construire ton premier profil.</p>
+    <button class="btn" onclick="startQuestionnaire()" id="homeDnaBtn">COMMENCER MON DNA</button>
+  </div>
+  <div class="grid">
+    <div class="card mini"><div class="eyebrow">INSIGHT</div><strong id="insightShort">—</strong><div class="muted">Signal principal</div></div>
+    <div class="card mini"><div class="eyebrow">PROGRESSION</div><strong id="completion">0%</strong><div class="muted">Questionnaire</div></div>
+  </div>
+
+  <div class="section-title">ADN APPROFONDI</div>
+  <div class="card dna-card v2-banner">
+    <div class="v2-badge">🧬 DEEP MATCHING · 18+</div>
+    <h2 style="font-weight:300;margin-bottom:8px">Va plus loin que la personnalité.</h2>
+    <p class="muted">Famille, enfants, couple, intimité privée, mode de vie, projets et valeurs. Les incompatibilités non négociables sont détectées avant le score de match.</p>
+    <div class="progress"><i id="v2HomeProgress" style="width:0%"></i></div>
+    <p class="muted" id="v2HomeStatus" style="margin-top:10px">Questionnaire V2 à commencer.</p>
+    <button class="btn" onclick="startV2Questionnaire()">COMMENCER ADN approfondi</button>
+  </div>
+
+  
+<div class="section-title">DESTINY MATCH</div>
+  <div class="card dna-card">
+    <div class="eyebrow">COMPATIBILITÉ</div>
+    <h2 style="font-weight:300">Une personne peut correspondre à ton ADN.</h2>
+    <p class="muted">Lance le moteur MATCH pour comparer tes 20 dimensions avec des profils compatibles.</p>
+    <button class="btn" onclick="go('match')">TROUVER MON DESTINY</button>
+  </div>
+
+  <div class="section-title">PROFIL DE RENCONTRE</div>
+  <div class="card">
+    <div class="eyebrow">DESTINY PROFILE</div>
+    <h2 style="font-weight:300" id="profileCompletionTitle">Complète ton profil</h2>
+    <p class="muted" id="profileCompletionText">Âge, ville et intention de rencontre permettront de filtrer les profils compatibles.</p>
+    <button class="btn dark" onclick="go('profile')">GÉRER MON PROFIL</button>
+  </div>
+  <div class="section-title">AUJOURD'HUI</div>
+  <div class="card"><div class="eyebrow">✨ ASK DESTINY</div><h2 style="font-weight:300">Une question. Ton contexte. Une réponse personnalisée.</h2><button class="btn" onclick="go('ask')">POSER UNE QUESTION</button></div>
+</div>
+
+<div id="dna" class="view">
+  <div class="top"><div class="brand">TON DNA</div><button class="iconbtn" onclick="go('home')">×</button></div>
+  <div class="card dna-card" style="text-align:center"><div class="eyebrow">INDICE DNA</div><div class="score" id="dnaScore">—</div><div class="muted">Synthèse non évaluative de tes 20 dimensions, disponible après le questionnaire.</div><div class="pill" id="confidence">Questionnaire : 0%</div></div>
+  <button class="btn" onclick="startQuestionnaire()" id="dnaStart">COMMENCER / REFAIRE MON ADN</button>
+
+  <div class="card v2-banner" style="margin-top:14px">
+    <div class="v2-badge">ADN approfondi · DEEP MATCHING</div>
+    <h2 style="font-weight:300">Compatibilité de vie réelle</h2>
+    <p class="muted">Le DNA psychologique reste actif. ADN approfondi ajoute famille, relation, intimité, lifestyle, projet de vie et valeurs.</p>
+    <div class="progress"><i id="v2DnaProgress" style="width:0%"></i></div>
+    <p class="muted" id="v2DnaStatus">0% complété</p>
+    <button class="btn" onclick="startV2Questionnaire()" id="v2DnaBtn">COMMENCER ADN approfondi</button>
+  </div>
+
+  <div class="section-title">TES 20 DIMENSIONS</div>
+  <div class="card bars" id="bars"></div>
+  <div class="section-title">SIGNATURE</div>
+  <div class="card"><h2 id="signature" style="font-weight:300">Ton identité évolutive</h2><p class="muted">Une synthèse des tendances dominantes de ton profil actuel.</p><div id="tags"></div></div>
+  <div class="section-title">TENSIONS DNA</div>
+  <div class="card" id="tensions"><p class="muted">Les tensions apparaîtront après le questionnaire.</p></div>
+</div>
+
+
+<div id="match" class="view">
+  <div class="top"><div class="brand">MATCH</div><button class="iconbtn" onclick="go('home')">×</button></div>
+  <div id="matchEmpty" class="card dna-card" style="text-align:center">
+    <div class="eyebrow">DESTINY MATCH ENGINE</div>
+    <div class="match-orb"><div class="match-lock">♡</div></div>
+    <h2 style="font-weight:300">Trouve la personne la plus proche de ton ADN.</h2>
+    <p class="muted">Le moteur combine ton ADN avec tes critères de rencontre : âge, intention et profils recherchés. Les comparaisons DNA sont calculées côté serveur. Les réponses détaillées des autres membres restent privées.</p>
+    <button class="btn" onclick="findMatch()">LANCER LE MATCH</button>
+  </div>
+  <div id="matchResult" class="hidden">
+    <div class="card dna-card" style="text-align:center">
+      <div class="eyebrow">COMPATIBILITÉ EXCEPTIONNELLE</div>
+      <div class="match-orb"><div><div class="match-score" id="matchScore">—</div><div class="muted">COMPATIBILITÉ</div></div></div>
+      <div class="match-name" id="matchName">Profil mystère</div>
+      <div class="pill" id="matchStatus">MATCH DNA</div><p class="muted" id="matchMeta" style="margin-bottom:0"></p>
+    </div>
+    <div class="match-grid">
+      <div class="metric"><span class="eyebrow">VALEURS</span><b id="mValues">—</b></div>
+      <div class="metric"><span class="eyebrow">RELATION</span><b id="mRelation">—</b></div>
+      <div class="metric"><span class="eyebrow">COMMUNICATION</span><b id="mCommunication">—</b></div>
+      <div class="metric"><span class="eyebrow">PROJECTION</span><b id="mProjection">—</b></div>
+    </div>
+    <div class="card">
+      <div class="eyebrow">CONSENTEMENT MUTUEL</div>
+      <h2 style="font-weight:300">La connexion n'existe que si vous êtes deux à vouloir vous découvrir.</h2>
+      <p class="muted" id="requestState">Tu peux envoyer un signal discret. Aucune conversation ne s'ouvre sans intérêt réciproque.</p>
+      <button class="btn" id="requestBtn" onclick="sendInterest()">ENVOYER UN SIGNAL ♡</button>
+    </div>
+    <div class="section-title">POURQUOI CE MATCH ?</div>
+    <div class="card"><p class="match-note" id="matchWhy"></p></div>
+    <div class="section-title">VOS POINTS FORTS</div>
+    <div class="card" id="matchStrengths"></div>
+    <button class="btn" onclick="findMatch()">RECALCULER LE MATCH</button>
+    <button class="btn dark" style="margin-top:10px" onclick="revealMatch()">DÉCOUVRIR LE PROFIL</button>
+    <div id="revealedProfile" class="card reveal-card hidden">
+      <div class="eyebrow">PROFIL RÉVÉLÉ · MATCH MUTUEL</div>
+      <div class="reveal-head">
+        <div class="reveal-avatar">
+          <span id="revealedAvatarFallback">♡</span>
+          <img id="revealedAvatarImg" class="hidden" alt="Photo du match">
+        </div>
+        <div style="min-width:0;flex:1">
+          <div class="reveal-name" id="revealedName">—</div>
+          <div class="reveal-meta" id="revealedMeta">—</div>
+          <div id="revealedVerified" class="reveal-verified hidden">✓ DESTINY VERIFIED</div>
+          <div class="reveal-score" id="revealedScore">—% COMPATIBILITÉ</div>
+        </div>
+      </div>
+      <div class="reveal-bio" id="revealedBio">Présentation non renseignée.</div>
+      <div class="reveal-cats">
+        <div class="reveal-cat"><span>Famille</span><b id="rFamily">—</b></div>
+        <div class="reveal-cat"><span>Couple</span><b id="rCouple">—</b></div>
+        <div class="reveal-cat"><span>Lifestyle</span><b id="rLifestyle">—</b></div>
+        <div class="reveal-cat"><span>Intimité</span><b id="rIntimacy">—</b></div>
+        <div class="reveal-cat"><span>Projet</span><b id="rProject">—</b></div>
+        <div class="reveal-cat"><span>Valeurs</span><b id="rValues">—</b></div>
+      </div>
+      <div class="notice" style="margin-top:14px">
+        Les réponses détaillées ADN approfondi restent privées. Seuls le profil de rencontre et les scores de compatibilité sont révélés après consentement mutuel.
+      </div>
+      <button id="openChatBtn" class="btn chat-open-btn" onclick="openChat()">💬 OUVRIR LA CONVERSATION <span id="openChatUnreadBadge" class="chat-open-unread hidden">0</span></button>
+    </div>
+  </div>
+</div>
+
+
+<div id="chat" class="view">
+  <div class="top">
+    <div>
+      <div class="brand">MESSAGES</div>
+      <div class="eyebrow">PRIVATE CHAT · MATCH MUTUEL</div>
+    </div>
+    <button class="iconbtn" onclick="go('match')">×</button>
+  </div>
+
+  <div class="card chat-head-card">
+    <div class="chat-avatar">
+      <span id="chatAvatarFallback">♡</span>
+      <img id="chatAvatarImg" class="hidden" alt="Photo du match">
+    </div>
+    <div style="min-width:0;flex:1">
+      <h2 class="chat-peer" id="chatPeerName">Ton match</h2>
+      <div class="chat-status" id="chatRealtimeStatus">● MATCH MUTUEL · connexion temps réel…</div>
+    </div>
+    <button class="iconbtn" type="button" onclick="refreshChat()" title="Actualiser">↻</button>
+  </div>
+
+  <div class="card chat-shell">
+    <div id="chatMessages" class="chat-messages">
+      <div class="chat-empty">Chargement de la conversation…</div>
+    </div>
+
+    <div class="chat-composer">
+      <div class="chat-compose-row">
+        <textarea id="chatInput" rows="2" maxlength="2000" placeholder="Écris un message…" onkeydown="chatKeyDown(event)"></textarea>
+        <button id="chatSendBtn" class="chat-send" type="button" onclick="sendChatMessage()" aria-label="Envoyer">➤</button>
+      </div>
+      <div class="chat-note">Conversation visible uniquement par les deux personnes de ce match. Les nouveaux messages apparaissent automatiquement.</div>
+    </div>
+  </div>
+</div>
+
+<div id="ask" class="view">
+  <div class="top"><div class="brand">ASK DESTINY</div><button class="iconbtn" onclick="go('home')">×</button></div>
+  <div class="card"><div class="eyebrow">TA QUESTION</div><textarea id="askText" rows="6" placeholder="Ex. Pourquoi est-ce que je doute de cette décision ?"></textarea><button class="btn" style="margin-top:12px" onclick="answerAsk()">ANALYSER</button></div>
+  <div id="askResult" class="card hidden"><div class="eyebrow">DESTINY INSIGHT</div><h2 id="askTitle" style="font-weight:300"></h2><p id="askBody" class="sub"></p><div class="tag">Basé sur ton ADN actuel</div></div>
+</div>
+
+<div id="profile" class="view">
+  <div class="top"><div class="brand">PROFIL</div><button class="iconbtn" onclick="go('home')">×</button></div>
+  <div class="card">
+    <div class="profile-chip">
+      <div class="avatar" id="profileAvatar" onclick="chooseAvatar()" role="button" aria-label="Ajouter ou modifier ma photo de profil" title="Ajouter / modifier ma photo">
+        <span class="avatar-fallback" id="avatarFallback">♡</span><img id="avatarImg" class="hidden" alt="Photo de profil">
+      </div>
+      <div style="min-width:0;flex:1"><div class="eyebrow">TON IDENTITÉ</div><h2 id="profileName" style="font-weight:300;margin:4px 0">—</h2><div class="muted"><span class="status-dot"></span>Profil synchronisé dans DESTINY Cloud</div>
+        <div class="avatar-actions"><button type="button" class="avatar-mini-btn" onclick="chooseAvatar()">📷 AJOUTER / CHANGER</button><button type="button" id="removeAvatarBtn" class="avatar-mini-btn danger hidden" onclick="removeAvatar()">SUPPRIMER</button></div>
+        <div id="avatarMsg" class="avatar-msg">Photo privée stockée dans DESTINY Cloud.</div>
+      </div>
+      <input id="avatarFile" class="hidden" type="file" accept="image/jpeg,image/png,image/webp" onchange="uploadAvatar(this.files&&this.files[0])">
+    </div>
+  </div>
+
+  <div class="section-title">DESTINY VERIFIED</div>
+  <div class="card verified-card">
+    <div class="verified-head">
+      <div>
+        <div class="eyebrow">SÉCURITÉ DU PROFIL</div>
+        <h2 style="font-weight:300;margin:5px 0 2px">Vérification d'identité</h2>
+      </div>
+      <span id="identityBadge" class="verified-badge">○ NON VÉRIFIÉ</span>
+    </div>
+    <p class="muted" id="identityText">Vérifie ton identité pour apparaître dans les Matchs et obtenir le badge DESTINY VERIFIED.</p>
+    <button class="btn" id="identityBtn" type="button" onclick="requestIdentityVerification()">VÉRIFIER MON IDENTITÉ</button>
+    <div class="notice" style="margin-top:12px">La vérification finale utilisera une pièce d'identité officielle et un selfie sécurisé via Stripe Identity.</div>
+  </div>
+
+  <div class="section-title">INFORMATIONS DE RENCONTRE</div>
+  <div class="card">
+    <div class="row2">
+      <div class="field"><label>DATE DE NAISSANCE</label><input id="pBirthDate" type="date"></div>
+      <div class="field"><label>VILLE</label><input id="pCity" placeholder="Bruxelles"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>JE SUIS</label><select id="pGender"><option value="homme">Un homme</option><option value="femme">Une femme</option><option value="autre">Autre</option></select></div>
+      <div class="field"><label>PAYS</label><input id="pCountry" placeholder="Belgique"></div>
+    </div>
+    <div class="field"><label>JE RECHERCHE</label><select id="pLooking"><option value="femme">Une femme</option><option value="homme">Un homme</option><option value="tous">Peu importe</option></select></div>
+    <div class="field"><label>INTENTION</label><select id="pGoal"><option value="relation-serieuse">Relation sérieuse</option><option value="rencontre">Faire connaissance</option><option value="vie-commune">Construire une vie à deux</option></select></div>
+    <div class="row2">
+      <div class="field"><label>ÂGE MIN.</label><input id="pMinAge" type="number" min="18" max="99" value="28"></div>
+      <div class="field"><label>ÂGE MAX.</label><input id="pMaxAge" type="number" min="18" max="99" value="55"></div>
+    </div>
+    <div class="field"><label>PRÉSENTATION</label><textarea id="pBio" rows="4" placeholder="Quelques mots sur toi, ce que tu recherches et ce qui compte vraiment..."></textarea></div>
+    <button class="btn" onclick="saveProfile()">ENREGISTRER MON PROFIL</button>
+  </div>
+  <div class="section-title">COMPTE DESTINY</div>
+  <div class="card">
+    <div class="account-row"><div><div class="eyebrow">SESSION ACTIVE</div><div class="account-email" id="accountEmail">—</div></div><span class="pill">CLOUD</span></div>
+    <button class="btn dark" style="margin-top:14px" onclick="logout()">SE DÉCONNECTER</button>
+    <button class="btn dark danger" style="margin-top:10px" onclick="clearLocalData()">EFFACER LES DONNÉES LOCALES</button>
+  </div>
+  <div class="notice">Version v3.1 UNREAD MESSAGES : compte, profil, photo Cloud, DNA psychologique, ADN approfondi, match mutuel, profil révélé, messagerie privée temps réel et compteur de messages non lus synchronisés dans Supabase. Les réponses sensibles restent privées.</div>
+  <button class="btn dark" style="margin-top:12px" onclick="resetApp()">Recommencer le DNA</button>
+</div>
+
+
+<div id="questionnaireV2" class="view">
+  <div class="top">
+    <div>
+      <div class="brand">ADN approfondi</div>
+      <div class="eyebrow">DEEP MATCHING</div>
+    </div>
+    <button class="iconbtn" onclick="go('dna')">×</button>
+  </div>
+
+  <div class="card">
+    <div class="v2-category" id="v2Category">CHARGEMENT</div>
+    <div class="qnum" id="v2Qnum">QUESTION</div>
+    <div class="progress"><i id="v2Qbar" style="width:0%"></i></div>
+    <div class="v2-question" id="v2Qtext">Chargement du questionnaire…</div>
+
+    <div id="v2Sensitive" class="v2-sensitive hidden">
+      🔒 Cette réponse est sensible. Elle reste privée et sert au calcul de compatibilité. Une préférence enregistrée dans DESTINY ne constitue jamais un consentement.
+    </div>
+
+    <div id="v2Options" class="v2-options"></div>
+
+    <div id="v2ImportanceWrap" class="hidden">
+      <div class="section-title" style="margin-top:20px">IMPORTANCE POUR TOI</div>
+      <div class="v2-importance" id="v2Importance">
+        <button data-v="flexible" onclick="setV2Importance('flexible')">Flexible</button>
+        <button data-v="very_important" onclick="setV2Importance('very_important')">Très important</button>
+        <button data-v="non_negotiable" onclick="setV2Importance('non_negotiable')">🔒 Non négociable</button>
+      </div>
+    </div>
+
+    <div class="v2-nav">
+      <button class="btn dark" onclick="prevV2Question()">← PRÉCÉDENT</button>
+      <button class="btn" id="v2NextBtn" onclick="saveAndNextV2()">SUIVANT →</button>
+    </div>
+    <div class="muted" id="v2SaveMsg" style="text-align:center;margin-top:12px"></div>
+  </div>
+</div>
+
+<div id="questionnaire" class="view">
+  <div class="top"><div class="brand">ADN</div><button class="iconbtn" onclick="go('dna')">×</button></div>
+  <div class="question"><div class="qnum" id="qnum"></div><div class="progress"><i id="qbar"></i></div><div class="qtext" id="qtext"></div><div class="muted">1 = Pas du tout · 5 = Tout à fait</div><div class="answers" style="margin-top:24px"><button onclick="ans(1)">1</button><button onclick="ans(2)">2</button><button onclick="ans(3)">3</button><button onclick="ans(4)">4</button><button onclick="ans(5)">5</button></div></div>
+</div>
+
+<div class="bottom">
+<button id="nHome" onclick="go('home')">⌂<br>Accueil</button>
+<button id="nDna" onclick="go('dna')">◈<br>ADN</button>
+<button id="nMatch" onclick="go('match')">♡<span id="matchUnreadBadge" class="unread-badge hidden">0</span><br>Match</button>
+<button id="nAsk" onclick="go('ask')">✦<br>Ask</button>
+<button id="nProfile" onclick="go('profile')">◯<br>Profil</button>
+</div>
+</div>
+
+<script>
+const questions=[
+["Je sais clairement ce qui est important pour moi, même quand les autres pensent différemment.","Identité",false],
+["Mes choix correspondent généralement à la personne que je veux devenir.","Identité",false],
+["Je crois en ma capacité à gérer une situation difficile.","Confiance",false],
+["Je peux défendre mon point de vue sans avoir besoin de l'approbation de tout le monde.","Confiance",false],
+["Je reconnais facilement ce que je ressens avant d'agir.","Émotions",false],
+["Quand une émotion forte apparaît, elle influence parfois mes décisions plus que je ne le voudrais.","Émotions",true],
+["Après un échec, je retrouve assez vite l'envie d'avancer.","Résilience",false],
+["Les périodes difficiles me permettent souvent de devenir plus solide.","Résilience",false],
+["J'ai des objectifs qui me donnent envie de me dépasser.","Ambition",false],
+["Je me fixe régulièrement des objectifs plus élevés que ce que je maîtrise déjà.","Ambition",false],
+["Même sans motivation, je peux rester régulier sur ce qui compte pour moi.","Discipline",false],
+["Je termine généralement ce que j'ai décidé de commencer.","Discipline",false],
+["J'aime apprendre simplement parce que quelque chose m'intrigue.","Curiosité",false],
+["Je cherche volontiers de nouvelles façons de comprendre un problème.","Curiosité",false],
+["Je trouve facilement plusieurs façons originales de résoudre un problème.","Créativité",false],
+["J'aime transformer une idée abstraite en quelque chose de concret.","Créativité",false],
+["Je sais exprimer clairement ce que je pense ou ce dont j'ai besoin.","Communication",false],
+["Quand un désaccord apparaît, je cherche d'abord à comprendre avant de répondre.","Communication",false],
+["Je remarque facilement ce que les autres peuvent ressentir, même s'ils ne le disent pas.","Empathie",false],
+["Je prends en compte l'impact de mes paroles sur les personnes qui comptent pour moi.","Empathie",false],
+["Je me sens capable de construire des relations durables et équilibrées.","Relations",false],
+["Dans une relation, je sais poser des limites sans couper le lien.","Relations",false],
+["Je peux parler ouvertement de mes besoins affectifs et intimes.","Intimité",false],
+["La confiance et la sécurité émotionnelle sont importantes pour mon intimité.","Intimité",false],
+["J'ai besoin de conserver une part de liberté personnelle dans mes relations.","Autonomie",false],
+["Je peux avancer seul sans attendre constamment qu'une autre personne me rassure.","Autonomie",false],
+["Quand un plan change, je trouve rapidement une nouvelle manière d'avancer.","Adaptabilité",false],
+["Je peux accepter l'incertitude sans perdre complètement mes repères.","Adaptabilité",false],
+["Je prends les décisions importantes sans les repousser indéfiniment.","Décision",false],
+["Même avec peu d'informations, je peux choisir une direction et l'ajuster ensuite.","Décision",false],
+["Je prends naturellement les devants lorsque quelque chose doit être organisé.","Leadership",false],
+["Je peux entraîner d'autres personnes autour d'une vision ou d'un objectif.","Leadership",false],
+["J'arrive à protéger mon énergie quand trop de demandes s'accumulent.","Énergie",false],
+["Je sais identifier ce qui me recharge réellement.","Énergie",false],
+["J'ai une idée assez claire de la vie que je souhaite construire.","Vision",false],
+["Mes décisions actuelles sont souvent guidées par une vision à long terme.","Vision",false],
+["Je sais trouver un équilibre entre mes besoins, mes responsabilités et mes envies.","Équilibre",false],
+["Je peux ralentir sans avoir l'impression de perdre ma valeur ou mon efficacité.","Équilibre",false],
+["Je réfléchis régulièrement à la personne que je veux devenir dans les prochaines années.","Projection",false],
+["Je transforme mes intentions pour l'avenir en actions concrètes aujourd'hui.","Projection",false]
+];
+
+const dimensions=[...new Set(questions.map(q=>q[1]))];
+let qi=0, vals=[];
+function emptyData(){return {name:"",score:0,dimensions:{},confidence:0,progress:0,goals:[],profile:{},qDraft:{answers:[],currentIndex:0}}}
+let data=emptyData();
+let activeStorageKey="destinyV10:guest";
+function normalizeData(d){d=d||emptyData();if(!d.profile)d.profile={};if(!d.dimensions)d.dimensions={};if(!d.qDraft)d.qDraft={answers:[],currentIndex:0};if(!Array.isArray(d.qDraft.answers))d.qDraft.answers=[];d.progress=Number.isFinite(Number(d.progress))?Number(d.progress):(d.confidence?100:Math.round(d.qDraft.answers.length/questions.length*100));return d}
+function loadUserData(user){activeStorageKey=`destinyV10:${user.id}`;try{data=normalizeData(JSON.parse(localStorage.getItem(activeStorageKey)||"null"))}catch{data=emptyData()}data.account={email:user.email};if(!data.name)data.name=user.user_metadata?.first_name||""}
+function save(){localStorage.setItem(activeStorageKey,JSON.stringify(data))}
+let authState={mode:"login",session:null,user:null};
+const SUPABASE_URL="https://etycyjftbczponttrbid.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY="sb_publishable_KcJQXR1dTbHhGgUmmsZ2Tg_BjrUOSfI";
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+const AVATAR_BUCKET="avatars";
+let avatarState={url:"",loadedAt:0,exists:false,busy:false};
+function avatarPath(){return authState.user?`${authState.user.id}/avatar`:""}
+function chooseAvatar(){if(!authState.user){alert("Connecte-toi d’abord.");return}document.getElementById("avatarFile")?.click()}
+function setAvatarUI(url=""){
+ const img=document.getElementById("avatarImg"),fallback=document.getElementById("avatarFallback"),remove=document.getElementById("removeAvatarBtn");
+ if(!img||!fallback)return;
+ if(url){img.src=url;img.classList.remove("hidden");fallback.classList.add("hidden");if(remove)remove.classList.remove("hidden");avatarState.exists=true}
+ else{img.removeAttribute("src");img.classList.add("hidden");fallback.classList.remove("hidden");if(remove)remove.classList.add("hidden");avatarState.exists=false}
+}
+function avatarMessage(text){const el=document.getElementById("avatarMsg");if(el)el.textContent=text||""}
+async function refreshAvatar(force=false){
+ if(!authState.user)return;
+ if(!force&&avatarState.url&&Date.now()-avatarState.loadedAt<45*60*1000){setAvatarUI(avatarState.url);return}
+ const path=avatarPath();
+ try{
+  const {data:res,error}=await sb.storage.from(AVATAR_BUCKET).createSignedUrl(path,3600);
+  if(error)throw error;
+  avatarState={url:res.signedUrl,loadedAt:Date.now(),exists:true,busy:false};setAvatarUI(res.signedUrl);avatarMessage("Photo synchronisée dans DESTINY Cloud ✓");
+ }catch(e){
+  avatarState={url:"",loadedAt:Date.now(),exists:false,busy:false};setAvatarUI("");
+  const msg=(e?.message||"").toLowerCase();if(msg&&!msg.includes("not found")&&!msg.includes("object"))console.warn("Avatar load",e);
+  avatarMessage("Ajoute une photo pour personnaliser ton profil.");
+ }
+}
+async function prepareAvatarFile(file){
+ if(!file)return null;
+ const allowed=["image/jpeg","image/png","image/webp"];
+ if(!allowed.includes(file.type))throw new Error("Format non accepté. Choisis une photo JPEG, PNG ou WebP.");
+ if(file.size<=4.5*1024*1024)return file;
+ const bmp=await createImageBitmap(file);const max=1600,ratio=Math.min(1,max/Math.max(bmp.width,bmp.height));const w=Math.round(bmp.width*ratio),h=Math.round(bmp.height*ratio);
+ const canvas=document.createElement("canvas");canvas.width=w;canvas.height=h;canvas.getContext("2d").drawImage(bmp,0,0,w,h);bmp.close?.();
+ const blob=await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error("Compression impossible.")),"image/jpeg",.84));
+ if(blob.size>5*1024*1024)throw new Error("La photo reste trop volumineuse. Choisis une autre image.");
+ return new File([blob],"avatar.jpg",{type:"image/jpeg"});
+}
+async function uploadAvatar(file){
+ const input=document.getElementById("avatarFile");if(!file||!authState.user){if(input)input.value="";return}if(avatarState.busy)return;
+ avatarState.busy=true;avatarMessage("Préparation de la photo…");
+ try{
+  const ready=await prepareAvatarFile(file);avatarMessage("Envoi sécurisé vers DESTINY Cloud…");
+  const {error}=await sb.storage.from(AVATAR_BUCKET).upload(avatarPath(),ready,{upsert:true,contentType:ready.type,cacheControl:"3600"});if(error)throw error;
+  avatarState.url="";avatarState.loadedAt=0;await refreshAvatar(true);avatarMessage("Photo de profil enregistrée ✓");
+ }catch(e){console.error("Avatar upload",e);avatarMessage(e?.message||"Impossible d’envoyer la photo.");alert(e?.message||"Impossible d’envoyer la photo.")}
+ finally{avatarState.busy=false;if(input)input.value=""}
+}
+async function removeAvatar(){
+ if(!authState.user||!avatarState.exists)return;if(!confirm("Supprimer ta photo de profil ?"))return;
+ avatarMessage("Suppression…");const {error}=await sb.storage.from(AVATAR_BUCKET).remove([avatarPath()]);if(error){avatarMessage(error.message);alert(error.message);return}
+ avatarState={url:"",loadedAt:Date.now(),exists:false,busy:false};setAvatarUI("");avatarMessage("Photo supprimée. Tu peux en ajouter une nouvelle.");
+}
+function togglePassword(inputId,buttonId){const input=document.getElementById(inputId),btn=document.getElementById(buttonId);if(!input||!btn)return;const show=input.type==="password";input.type=show?"text":"password";btn.textContent=show?"🙈":"👁";btn.setAttribute("aria-label",show?"Masquer le mot de passe":"Afficher le mot de passe");btn.title=show?"Masquer le mot de passe":"Afficher le mot de passe"}
+async function requestPasswordReset(){const email=document.getElementById("aEmail").value.trim().toLowerCase(),msg=document.getElementById("authMsg");if(!email||!email.includes("@")){msg.textContent="Entre d’abord ton adresse e-mail.";return}const btn=document.getElementById("forgotPasswordBtn");btn.disabled=true;msg.textContent="Envoi du lien de réinitialisation…";try{const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin+window.location.pathname});if(error)throw error;msg.textContent="E-mail envoyé ✓ Ouvre le lien reçu pour choisir un nouveau mot de passe."}catch(e){msg.textContent=e.message||"Impossible d’envoyer l’e-mail."}finally{btn.disabled=false}}
+async function updateRecoveredPassword(){const p1=document.getElementById("newPassword").value,p2=document.getElementById("confirmPassword").value,msg=document.getElementById("recoveryMsg"),btn=document.getElementById("updatePasswordBtn");if(!p1||p1.length<6){msg.textContent="Le mot de passe doit contenir au moins 6 caractères.";return}if(p1!==p2){msg.textContent="Les deux mots de passe ne correspondent pas.";return}btn.disabled=true;msg.textContent="Mise à jour…";try{const {error}=await sb.auth.updateUser({password:p1});if(error)throw error;msg.textContent="Mot de passe mis à jour ✓";setTimeout(async()=>{const {data:{session}}=await sb.auth.getSession();if(session)await openSession(session);else{document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));document.getElementById("auth").classList.add("active");authMode("login")}},700)}catch(e){msg.textContent=e.message||"Impossible de modifier le mot de passe."}finally{btn.disabled=false}}
+function authMode(mode){authState.mode=mode;document.getElementById("tabLogin").classList.toggle("active",mode==="login");document.getElementById("tabSignup").classList.toggle("active",mode==="signup");document.getElementById("signupName").classList.toggle("hidden",mode!=="signup");document.getElementById("signupBirth").classList.toggle("hidden",mode!=="signup");document.getElementById("forgotPasswordBtn").classList.toggle("hidden",mode!=="login");document.getElementById("authBtn").textContent=mode==="signup"?"CRÉER MON COMPTE":"SE CONNECTER";document.getElementById("authMsg").textContent="";if(mode==="signup")setSignupBirthLimit();const pw=document.getElementById("aPassword");pw.autocomplete=mode==="signup"?"new-password":"current-password";pw.type="password";const t=document.getElementById("passwordToggle");t.textContent="👁";t.setAttribute("aria-label","Afficher le mot de passe")}
+function setSignupBirthLimit(){
+ const el=document.getElementById("aBirthDate");if(!el)return;
+ const d=new Date();d.setFullYear(d.getFullYear()-18);
+ const yyyy=d.getFullYear(),mm=String(d.getMonth()+1).padStart(2,"0"),dd=String(d.getDate()).padStart(2,"0");
+ el.max=`${yyyy}-${mm}-${dd}`;
+}
+function withTimeout(promise,ms,label="Opération"){return Promise.race([promise,new Promise((_,reject)=>setTimeout(()=>reject(new Error(label+" trop longue. Vérifie ta connexion internet puis réessaie.")),ms))])}
+
+function normalizeBirthDateValue(v){
+  if(!v)return "";
+  v=String(v).trim();
+
+  // Format natif HTML date : YYYY-MM-DD
+  if(/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
+
+  // Certains navigateurs / champs peuvent renvoyer DD/MM/YYYY
+  const m=v.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if(m){
+    const dd=String(m[1]).padStart(2,"0");
+    const mm=String(m[2]).padStart(2,"0");
+    const yyyy=m[3];
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  return "";
+}
+
+async function submitAuth(){
+ const email=document.getElementById("aEmail").value.trim().toLowerCase(),pw=document.getElementById("aPassword").value,name=document.getElementById("aName").value.trim(),birthDate=normalizeBirthDateValue(document.getElementById("aBirthDate")?.value||""),msg=document.getElementById("authMsg"),btn=document.getElementById("authBtn");
+ if(!email||!email.includes("@")){msg.textContent="Entre une adresse e-mail valide.";return} if(!pw||pw.length<6){msg.textContent="Le mot de passe doit contenir au moins 6 caractères.";return}
+ msg.textContent=authState.mode==="signup"?"Création du compte…":"Connexion sécurisée…";btn.disabled=true;
+ try{
+   if(authState.mode==="signup"){
+     if(!name){msg.textContent="Indique ton prénom ou pseudo.";return}
+     const signupAge=ageFromBirthDate(birthDate);
+     if(!birthDate||signupAge===null||signupAge<18){msg.textContent="DESTINY est réservé aux personnes de 18 ans ou plus.";return}
+     if(signupAge>99){msg.textContent="Vérifie ta date de naissance.";return}
+     // DESTINY v2.3 — inscription renforcée :
+     // on transmet explicitement la date de naissance dans raw_user_meta_data
+     // car le trigger Supabase public.handle_new_user() l'exige.
+     const signupMetadata={
+       first_name:name,
+       birth_date:String(birthDate),
+       age_verified_18:true
+     };
+     console.log("DESTINY signup metadata",signupMetadata);
+     const {data:res,error}=await withTimeout(
+       sb.auth.signUp({
+         email:email,
+         password:pw,
+         options:{data:signupMetadata}
+       }),
+       15000,
+       "Création du compte"
+     );
+     if(error)throw error; data.name=name;data.account={email};save();
+     if(res.session){msg.textContent="Compte créé ✓ Ouverture…";openSession(res.session)}else msg.textContent="Compte créé ✓ Vérifie ton e-mail puis connecte-toi.";
+   }else{
+     const {data:res,error}=await withTimeout(sb.auth.signInWithPassword({email,password:pw}),15000,"Connexion");
+     if(error)throw error;if(!res?.session)throw new Error("Session Supabase introuvable.");msg.textContent="Connexion réussie ✓";openSession(res.session);
+   }
+ }catch(e){console.error("AUTH",e);msg.textContent=e?.message||"Impossible de se connecter."}finally{btn.disabled=false}
+}
+async function openSession(session){
+ authState.session=session;authState.user=session?.user||null;
+ if(!authState.user)return;
+ loadUserData(authState.user);save();
+ document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));document.querySelector(".bottom").style.display="grid";go("home");render();refreshAvatar().catch(()=>{});startUnreadRealtime().catch(()=>{});
+ Promise.allSettled([withTimeout(loadCloudProfile(),8000,"Chargement du profil"),withTimeout(loadCloudDNA(),8000,"Chargement du DNA"),withTimeout(loadCloudDraft(),8000,"Chargement de la progression")]).then(()=>{save();render()}).catch(()=>{});
+}
+async function logout(){await stopChatRealtime();await stopUnreadRealtime();await sb.auth.signOut();authState.session=null;authState.user=null;data=emptyData();activeStorageKey="destinyV10:guest";document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));document.getElementById("auth").classList.add("active");document.querySelector(".bottom").style.display="none";document.getElementById("aPassword").value="";avatarState={url:"",loadedAt:0,exists:false,busy:false};setAvatarUI("");authMode("login")}
+function clearLocalData(){if(!confirm("Effacer uniquement le cache DESTINY de ce compte sur cet appareil ? Les données cloud resteront intactes."))return;localStorage.removeItem(activeStorageKey);location.reload()}
+async function bootAuth(){let recovering=false;sb.auth.onAuthStateChange((event,session)=>{if(event==="PASSWORD_RECOVERY"){recovering=true;authState.session=session;authState.user=session?.user||null;document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));document.getElementById("recovery").classList.add("active");document.querySelector(".bottom").style.display="none";return}if(event==="SIGNED_OUT"){authState.session=null;authState.user=null}});try{const {data:{session}}=await withTimeout(sb.auth.getSession(),8000,"Récupération de la session");if(recovering)return;if(session){openSession(session)}else{document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));document.getElementById("auth").classList.add("active");document.querySelector(".bottom").style.display="none"}}catch(e){console.error("BOOT",e);document.getElementById("authMsg").textContent="Connexion au service indisponible. Recharge la page ou réessaie.";document.getElementById("auth").classList.add("active");document.querySelector(".bottom").style.display="none"}}
+function begin(){go("home");render()}
+function go(id){
+ document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
+ document.getElementById(id).classList.add("active");
+ document.querySelectorAll(".bottom button").forEach(b=>b.classList.remove("active"));
+ const map={home:"nHome",dna:"nDna",match:"nMatch",ask:"nAsk",profile:"nProfile"};
+ if(map[id])document.getElementById(map[id]).classList.add("active");
+ if(id==="questionnaire")loadQ();
+ if(id==="questionnaireV2")renderV2Question();
+ if(id==="profile"){loadProfile();refreshAvatar().catch(()=>{})}
+ if(id==="match"&&data.lastMatch)renderMatch(data.lastMatch);
+ if(id==="chat"){
+   refreshChat();
+   startChatRealtime();
+ }else{
+   stopChatRealtime();
+ }
+ render();
+}
+function startQuestionnaire(){
+ const saved=Array.isArray(data.qDraft?.answers)?data.qDraft.answers:[];
+ if(saved.length>0&&saved.length<questions.length){
+   const resume=confirm(`Tu as déjà répondu à ${saved.length} question${saved.length>1?"s":""} sur ${questions.length}. OK = reprendre, Annuler = recommencer.`);
+   if(resume){vals=[...saved];qi=saved.length;go("questionnaire");return}
+ }
+ vals=[];qi=0;data.qDraft={answers:[],currentIndex:0};data.progress=0;if(!data.confidence){data.score=0;data.dimensions={}}save();syncDraftDNA().catch(()=>{});go("questionnaire")
+}
+function loadQ(){
+ if(qi>=questions.length){calculateDNA();go("dna");return}
+ const q=questions[qi];
+ document.getElementById("qnum").textContent=`QUESTION ${qi+1} / ${questions.length}`;
+ document.getElementById("qbar").style.width=(qi/questions.length*100)+"%";
+ document.getElementById("qtext").textContent=q[0];
+}
+function ans(v){
+ vals[qi]=v;qi++;data.qDraft={answers:[...vals],currentIndex:qi};data.progress=Math.round(qi/questions.length*100);save();syncDraftDNA().catch(()=>{});render();
+ if(qi<questions.length){loadQ();return}
+ calculateDNA();go("dna");
+}
+function calculateDNA(){
+ const buckets={};
+ questions.forEach((q,i)=>{
+   let v=vals[i];
+   if(q[2])v=6-v;
+   const s=(v-1)/4*100;
+   if(!buckets[q[1]])buckets[q[1]]=[];
+   buckets[q[1]].push(s);
+ });
+ data.dimensions={};
+ dimensions.forEach(d=>data.dimensions[d]=Math.round(buckets[d].reduce((a,b)=>a+b,0)/buckets[d].length));
+ data.score=Math.round(dimensions.reduce((a,d)=>a+data.dimensions[d],0)/dimensions.length);
+ data.confidence=100;data.progress=100;
+ data.completedAt=new Date().toISOString();data.qDraft={answers:[...vals],currentIndex:questions.length};
+ save();
+ Promise.allSettled([syncDNA(),syncDraftDNA(true)]).catch(()=>{});
+}
+function signature(entries){
+ const top=entries.slice(0,3).map(x=>x[0]);
+ if(top.includes("Vision")&&top.includes("Ambition"))return "LE BÂTISSEUR VISIONNAIRE";
+ if(top.includes("Empathie")&&top.includes("Relations"))return "LE CONNECTEUR PROFOND";
+ if(top.includes("Curiosité")&&top.includes("Créativité"))return "L'EXPLORATEUR CRÉATIF";
+ if(top.includes("Discipline")&&top.includes("Décision"))return "LE STRATÈGE DÉTERMINÉ";
+ if(top.includes("Autonomie")&&top.includes("Adaptabilité"))return "L'ADAPTATEUR LIBRE";
+ return "L'IDENTITÉ EN ÉVOLUTION";
+}
+function render(){
+ const n=data.name||"à toi";
+ document.getElementById("hello").textContent=`Bonjour ${n} 👋`;
+ const score=data.score||0, conf=data.confidence||0, progress=Math.max(0,Math.min(100,Number(data.progress)||0));
+ document.getElementById("homeScore").textContent=conf?score:"—";
+ document.getElementById("homeProgress").style.width=progress+"%";
+ document.getElementById("homeStatus").textContent=conf?"PROFIL ACTIF":progress?`${progress}%`:"À CONSTRUIRE";
+ document.getElementById("homeDesc").textContent=conf?"Ton profil évolutif est calculé à partir de 20 dimensions.":progress?`Questionnaire en cours : ${data.qDraft?.answers?.length||0}/${questions.length} réponses enregistrées.`:"Réponds au questionnaire DNA pour construire ton premier profil.";
+ document.getElementById("completion").textContent=progress+"%";
+ document.getElementById("dnaScore").textContent=conf?score:"—";
+ document.getElementById("confidence").textContent=`Questionnaire : ${progress}%`;
+ const homeBtn=document.getElementById("homeDnaBtn"),dnaBtn=document.getElementById("dnaStart");const label=conf?"REFAIRE MON ADN":progress?"REPRENDRE MON DNA":"COMMENCER MON DNA";if(homeBtn)homeBtn.textContent=label;if(dnaBtn)dnaBtn.textContent=label;
+ document.getElementById("profileName").textContent=data.name||"Ton profil";
+ const ae=document.getElementById("accountEmail");if(ae)ae.textContent=(data.account&&data.account.email)||authState.user?.email||"Compte cloud";
+ const p=data.profile||{};const pc=!!(p.birthDate&&p.city);document.getElementById("profileCompletionTitle").textContent=pc?"Profil de rencontre actif":"Complète ton profil";document.getElementById("profileCompletionText").textContent=pc?`${p.age||ageFromBirthDate(p.birthDate)} ans · ${p.city} · ${p.goal==="vie-commune"?"Construire une vie à deux":p.goal==="relation-serieuse"?"Relation sérieuse":"Faire connaissance"}`:"Âge, ville et intention de rencontre permettront de filtrer les profils compatibles.";
+ const d=data.dimensions||{};
+ const entries=Object.entries(d).sort((a,b)=>b[1]-a[1]);
+ document.getElementById("insightShort").textContent=entries[0]?entries[0][0]:"En construction";
+ document.getElementById("signature").textContent=entries.length?signature(entries):"Ton identité évolutive";
+ document.getElementById("tags").innerHTML=entries.slice(0,5).map(x=>`<span class="tag">${x[0]} · ${x[1]}</span>`).join("");
+ document.getElementById("bars").innerHTML=entries.length?entries.map(x=>`<div class="row"><span>${x[0]}</span><div class="track"><i style="width:${x[1]}%"></i></div><b>${x[1]}</b></div>`).join(""):"<p class='muted'>Commence ton questionnaire DNA.</p>";
+ if(entries.length){
+   const t=[];
+   const pairs=[["Autonomie","Relations","Autonomie ↔ Relations"],["Ambition","Équilibre","Performance ↔ Équilibre"],["Curiosité","Sécurité","Nouveauté ↔ Sécurité"],["Intimité","Autonomie","Proximité ↔ Indépendance"]];
+   pairs.forEach(p=>{if(d[p[0]]!==undefined&&d[p[1]]!==undefined&&Math.abs(d[p[0]]-d[p[1]])<18)t.push(`<div class="tag">${p[2]}</div>`)});
+   document.getElementById("tensions").innerHTML=t.length?t.join(""):"<p class='muted'>Aucune tension dominante détectée pour le moment.</p>";
+ } else document.getElementById("tensions").innerHTML="<p class='muted'>Les tensions apparaîtront après le questionnaire.</p>";
+ renderIdentityStatus();
+}
+
+
+// ============================================================
+// ADN APPROFONDI — DEEP MATCHING
+// ============================================================
+let v2State={
+  questions:[],
+  answers:{},
+  index:0,
+  selected:[],
+  importance:"flexible",
+  loaded:false,
+  busy:false
+};
+
+const V2_CATEGORY_LABELS={
+  family:"Famille & enfants",
+  couple:"Couple & engagement",
+  lifestyle:"Mode de vie & loisirs",
+  intimacy:"Intimité privée · 18+",
+  project:"Projet de vie",
+  values:"Valeurs & émotions"
+};
+
+const V2_OPTION_LABELS={
+ yes:"Oui", no:"Non", maybe:"Peut-être", other:"Autre", unsure:"Je ne sais pas",
+ absolutely_yes:"Oui, absolument", probably_yes:"Probablement oui", probably_no:"Probablement non", absolutely_no:"Non, absolument",
+ mostly_with_me:"Principalement avec moi", shared_custody:"Garde alternée", mostly_elsewhere:"Principalement ailleurs",
+ yes_easily:"Oui, sans problème", depends:"Cela dépend", difficult:"Difficilement",
+ very_involved:"Très impliqué(e)", present_no_parent_role:"Présent(e), sans rôle parental", respectful_distance:"Distance respectueuse",
+ quickly:"Rapidement", later:"À terme", not_necessary:"Pas nécessairement",
+ very_high:"Très élevée", high:"Élevée", moderate:"Modérée", low:"Faible",
+ very_present:"Très présente", regular:"Régulière", occasional:"Occasionnelle", limited:"Limitée",
+ serious:"Relation sérieuse", long_term:"Relation durable", marriage:"Mariage à terme", open_to_future:"Voir où cela mène", casual:"Relation légère",
+ important:"Important", would_like:"J’aimerais", possible:"Possible", not_important:"Peu important", never:"Jamais",
+ naturally:"Naturellement", slowly:"Lentement", very_slowly:"Très lentement",
+ almost_daily:"Presque tous les jours", several_times_week:"Plusieurs fois par semaine", weekends:"Surtout le week-end", one_two_times_week:"1–2 fois par semaine", flexible:"Flexible",
+ balanced:"Équilibré", essential:"Essentiel", very_important:"Très important",
+ talk_immediately:"En parler immédiatement", talk_when_calm:"En parler une fois calmés", need_space_first:"Prendre du recul puis parler", avoid_conflict:"Éviter le conflit",
+ seek_compromise:"Chercher un compromis", discuss_until_resolved:"Discuter jusqu’à résoudre", take_distance_then_discuss:"Prendre de la distance puis discuter", give_in:"Céder facilement", stand_ground:"Défendre ma position",
+ non_negotiable:"Non négociable", open_relationship_possible:"Relation ouverte possible", mostly_together:"Souvent ensemble", often_together:"Très souvent ensemble", mostly_independent:"Plutôt indépendants",
+ mostly_shared:"Principalement communes", shared_and_personal:"Communes + personnelles", mostly_separate:"Principalement séparées", completely_separate:"Totalement séparées",
+ equal:"À parts égales", according_to_availability:"Selon les disponibilités", according_to_preferences:"Selon les préférences", traditional_roles:"Rôles traditionnels",
+ yes_a_lot:"Oui, beaucoup", yes_sometimes:"Oui, parfois", rarely:"Rarement", almost_never:"Presque jamais",
+ child_related_only:"Uniquement pour les enfants", cordial:"Cordiale", friendly:"Amicale", very_close:"Très proche",
+ yes_with_plan:"Oui, avec un projet de rapprochement", within_region:"Dans ma région", within_country:"Dans mon pays",
+ central:"Centrale", very_important:"Très importante", balanced_with_other_priorities:"Équilibrée avec le reste", independent:"Très indépendante",
+ omnivore:"Omnivore", vegetarian:"Végétarien(ne)", vegan:"Végétalien(ne)", pescatarian:"Pescétarien(ne)", halal:"Halal", kosher:"Casher", no_particular_diet:"Aucun régime particulier",
+ nice_to_have:"Ce serait un plus", love_cooking:"J’adore cuisiner", cook_regularly:"Je cuisine régulièrement", sometimes:"Parfois", never:"Jamais",
+ very_often:"Très souvent", often:"Souvent",
+ daily_smoker:"Fumeur(se) quotidien(ne)", occasional_smoker:"Fumeur(se) occasionnel(le)", vape:"Vape", trying_to_quit:"J’essaie d’arrêter", former_smoker:"Ancien(ne) fumeur(se)", never_smoked:"Jamais fumé",
+ occasionally_only:"Seulement occasionnellement", if_trying_to_quit:"Oui s’il/elle essaie d’arrêter", prefer_not:"Je préfère éviter",
+ socially:"Socialement", weekly:"Chaque semaine", several_times_week:"Plusieurs fois par semaine",
+ any_reasonable:"Toute consommation raisonnable", social_only:"Socialement uniquement", little_or_none:"Peu ou pas", none:"Aucune",
+ daily:"Tous les jours", several_times_week:"Plusieurs fois par semaine", occasionally:"Occasionnellement",
+ home_cocooning:"Cocooning à la maison", restaurant:"Restaurant", friends:"Amis", bar:"Bar", cinema:"Cinéma", concert:"Concert", party:"Soirée", walk:"Balade", sport:"Sport", spontaneous:"Improviser",
+ few_times_month:"Quelques fois par mois",
+ beach:"Plage", mountains:"Montagne", city_trip:"City-trip", road_trip:"Road-trip", adventure:"Aventure", culture:"Culture", luxury:"Confort / luxe", nature:"Nature", camping:"Camping", cruise:"Croisière", all_inclusive:"All inclusive",
+ love_it:"J’adore", prefer_planning:"Je préfère planifier",
+ dog:"Chien", cat:"Chat", bird:"Oiseau", horse:"Cheval", do_not_want:"Je n’en veux pas",
+ love_them:"Je les adore", like_them:"Je les aime bien", neutral:"Neutre", prefer_without:"Je préfère sans animaux",
+ depends_on_animal:"Cela dépend de l’animal", mild:"Légère", several_animals:"Plusieurs animaux", severe:"Sévère",
+ early_bird:"Très matinal(e)", rather_early:"Plutôt matinal(e)", rather_night_owl:"Plutôt couche-tard", night_owl:"Très couche-tard",
+ very_organized:"Très organisé(e)", organized:"Organisé(e)", spontaneous:"Spontané(e)", very_spontaneous:"Très spontané(e)", relaxed:"Plutôt détendu(e)", very_relaxed:"Très détendu(e)",
+ rest:"Repos", family:"Famille", shopping:"Shopping", projects_at_home:"Projets à la maison",
+ fitness:"Fitness", running:"Course", football:"Football", cycling:"Vélo", hiking:"Randonnée", motorcycle:"Moto", cars:"Automobile", gaming:"Jeux vidéo", series:"Séries", music:"Musique", concerts:"Concerts", reading:"Lecture", cooking:"Cuisine", restaurants:"Restaurants", gardening:"Jardinage", diy:"Bricolage", photography:"Photographie", art:"Art", dance:"Danse", travel:"Voyages", water_sports:"Sports nautiques", technology:"Technologie", fashion:"Mode", wellness:"Bien-être", history:"Histoire", museums:"Musées", board_games:"Jeux de société",
+ very_social:"Très sociable", social:"Sociable", small_circle:"Petit cercle proche", very_private:"Très réservé(e)", a_lot:"Beaucoup", regularly:"Régulièrement", little:"Peu",
+ very_frequent:"Très fréquente", few_times_month:"Quelques fois par mois",
+ very_comfortable:"Très à l’aise", comfortable:"À l’aise", very_difficult:"Très difficile",
+ very_flexible:"Très flexible", strict_monogamy:"Monogamie stricte", monogamy:"Monogamie",
+ like:"J’aime", open_to_it:"Ouvert(e) à essayer", not_interested:"Cela ne m’intéresse pas", hard_limit:"Limite absolue", prefer_not_answer:"Je préfère ne pas répondre",
+ interested:"Cela m’intéresse", romantic:"Romantique / sensuel", roleplay:"Jeux de rôle", dominance_submission:"Domination / soumission consensuelle", toys:"Accessoires", public_setting_fantasy:"Lieu inhabituel / fantasme de lieu public", voyeurism_exhibitionism:"Voyeurisme / exhibitionnisme consensuel", multiple_adults:"Plusieurs adultes consentants", swinging:"Échangisme", new_places:"Nouveaux lieux", other_private:"Autre, privé",
+ very_open:"Très ouvert(e)", open:"Ouvert(e)", prefer_familiar:"Je préfère ce que je connais",
+ algorithm_only:"Uniquement pour l’algorithme", reveal_compatibility_score_only:"Afficher uniquement le score de compatibilité", may_share_after_match:"Partage possible après match mutuel",
+ office_hours:"Horaires de bureau", shift_work:"Horaires postés", evenings:"Soirs", nights:"Nuits", weekends:"Week-ends", irregular:"Irréguliers", remote:"Télétravail", retired:"Retraité(e)",
+ very_ambitious:"Très ambitieux(se)", ambitious:"Ambitieux(se)", stable:"Stabilité", work_is_secondary:"Le travail est secondaire",
+ strong_saver:"J’épargne beaucoup", saver:"Plutôt épargnant(e)", spender:"Plutôt dépensier(ère)", very_spontaneous_spender:"Dépenses très spontanées",
+ mixed_shared_private:"Mixte : commun + personnel", fully_separate:"Entièrement séparées",
+ avoid_if_possible:"Éviter si possible", only_for_major_projects:"Seulement pour de grands projets", comfortable_if_managed:"Acceptables si maîtrisés", not_concerned:"Peu préoccupé(e)",
+ house:"Maison", apartment:"Appartement", city:"Ville", suburbs:"Périphérie", countryside:"Campagne", coast:"Bord de mer", no_preference:"Aucune préférence",
+ within_year:"Dans l’année", one_two_years:"Dans 1–2 ans", only_if_natural:"Quand cela devient naturel", prefer_separate_homes:"Je préfère deux logements",
+ same_city:"Même ville", "25km":"25 km", "50km":"50 km", "100km":"100 km", "200km":"200 km", same_country:"Même pays", another_country:"Un autre pays", anywhere:"N’importe où", not_willing:"Je ne souhaite pas déménager",
+ "10km":"10 km", no_limit:"Aucune limite",
+ stable_couple:"Couple stable", living_together:"Vie commune", married:"Marié(e)", family_life:"Vie de famille", career_growth:"Évolution professionnelle", financial_security:"Sécurité financière", home_ownership:"Propriétaire", more_freedom:"Plus de liberté", peaceful_life:"Vie paisible",
+ strong_family:"Famille soudée", stable_partnership:"Partenariat stable", active_social_life:"Vie sociale active", career_success:"Réussite professionnelle", travel_and_discovery:"Voyages & découvertes", quiet_home_life:"Vie calme à la maison", financial_independence:"Indépendance financière", living_abroad:"Vivre à l’étranger", city_life:"Vie urbaine",
+ yes_easily:"Oui facilement", yes_if_mutual:"Oui si c’est réciproque", only_small_changes:"Seulement de petits changements",
+ absolute_priority:"Priorité absolue", total:"Total(e)",
+ talk_same_day:"En parler le jour même", take_time_then_talk:"Prendre du temps puis parler", wait_until_calm:"Attendre d’être calme",
+ calm_discussion:"Discussion calme", emotional_then_discuss:"Émotionnel(le), puis discussion", need_distance:"Besoin de distance", avoid:"Éviter", confrontational:"Confrontation directe",
+ almost_everything:"Presque tout", a_lot:"Beaucoup", regular_but_independent:"Régulier mais autonome", very_independent:"Très indépendant(e)",
+ none:"Aucune", kindness:"Bienveillance",
+ very_easy:"Très facile", easy:"Facile", no_preference:"Aucune préférence", prefer_reserved:"Je préfère quelqu’un de réservé",
+ very_much:"Beaucoup", not_at_all:"Pas du tout", very_high:"Très élevée",
+ absolutely:"Absolument", usually:"Généralement", not_really:"Pas vraiment",
+ kind:"Bienveillant(e)", loyal:"Loyal(e)", honest:"Honnête", funny:"Drôle", affectionate:"Affectueux(se)", calm:"Calme", passionate:"Passionné(e)", protective:"Protecteur(trice)", romantic:"Romantique", intelligent:"Intelligent(e)", confident:"Sûr(e) de soi", empathetic:"Empathique", adventurous:"Aventurier(ère)",
+ lying:"Mensonge", infidelity:"Infidélité", violence:"Violence", controlling_behavior:"Contrôle excessif", lack_of_affection:"Manque d’affection", lack_of_communication:"Manque de communication", financial_irresponsibility:"Irresponsabilité financière", addiction:"Addiction", extreme_jealousy:"Jalousie extrême", disrespect:"Manque de respect", different_life_goals:"Projets de vie incompatibles", different_family_goals:"Projets familiaux incompatibles"
+};
+
+function v2Label(v){ return V2_OPTION_LABELS[v] || String(v).replaceAll("_"," "); }
+
+function v2VisibleQuestions(){
+  const qs=[...v2State.questions];
+  const hasKids=v2State.answers["family_has_children"]?.answer?.[0];
+  return qs.filter(q=>{
+    if((q.question_key==="family_children_count" || q.question_key==="family_children_living") && hasKids==="no") return false;
+    return true;
+  });
+}
+
+async function loadV2Data(){
+  if(!authState.user) throw new Error("Connecte-toi d’abord.");
+  const [{data:qs,error:qErr},{data:ansRows,error:aErr},{data:prog,error:pErr}] = await Promise.all([
+    sb.from("dna_v2_questions").select("*").eq("active",true).order("category").order("position"),
+    sb.from("dna_v2_answers").select("question_key,answer,importance,is_private").eq("user_id",authState.user.id),
+    sb.from("dna_v2_progress").select("*").eq("user_id",authState.user.id).maybeSingle()
+  ]);
+  if(qErr) throw qErr;
+  if(aErr) throw aErr;
+  v2State.questions=(qs||[]).sort((a,b)=>{
+    const order={family:1,couple:2,lifestyle:3,intimacy:4,project:5,values:6};
+    return (order[a.category]||99)-(order[b.category]||99) || a.position-b.position;
+  });
+  v2State.answers={};
+  (ansRows||[]).forEach(r=>v2State.answers[r.question_key]=r);
+  const visible=v2VisibleQuestions();
+  let idx=0;
+  if(prog && Number.isFinite(Number(prog.current_question))) idx=Math.max(0,Math.min(visible.length-1,Number(prog.current_question)));
+  else {
+    const firstMissing=visible.findIndex(q=>!v2State.answers[q.question_key]);
+    idx=firstMissing>=0?firstMissing:Math.max(0,visible.length-1);
+  }
+  v2State.index=idx;
+  v2State.loaded=true;
+  updateV2Summary();
+}
+
+async function startV2Questionnaire(){
+  try{
+    const msg=document.getElementById("v2SaveMsg"); if(msg) msg.textContent="Chargement…";
+    await loadV2Data();
+    go("questionnaireV2");
+  }catch(e){
+    console.error(e);
+    alert("Impossible de charger ADN approfondi : "+(e.message||e));
+  }
+}
+
+function updateV2Summary(){
+  const visible=v2VisibleQuestions();
+  const answered=visible.filter(q=>v2State.answers[q.question_key]).length;
+  const pct=visible.length?Math.round(answered/visible.length*100):0;
+  ["v2HomeProgress","v2DnaProgress"].forEach(id=>{const el=document.getElementById(id);if(el)el.style.width=pct+"%"});
+  const hs=document.getElementById("v2HomeStatus"); if(hs)hs.textContent=pct>=100?"ADN approfondi complété ✓":`${answered}/${visible.length} réponses · ${pct}%`;
+  const ds=document.getElementById("v2DnaStatus"); if(ds)ds.textContent=pct>=100?"ADN approfondi complété ✓":`${pct}% complété`;
+  const db=document.getElementById("v2DnaBtn"); if(db)db.textContent=pct>=100?"REVOIR ADN approfondi":pct?"REPRENDRE ADN approfondi":"COMMENCER ADN approfondi";
+}
+
+function renderV2Question(){
+  if(!v2State.loaded){ startV2Questionnaire(); return; }
+  const visible=v2VisibleQuestions();
+  if(!visible.length){
+    document.getElementById("v2Qtext").textContent="Aucune question disponible.";
+    return;
+  }
+  v2State.index=Math.max(0,Math.min(v2State.index,visible.length-1));
+  const q=visible[v2State.index];
+  const saved=v2State.answers[q.question_key];
+  v2State.selected=Array.isArray(saved?.answer)?[...saved.answer]:[];
+  v2State.importance=(saved?.importance==="important"?"very_important":saved?.importance) || "flexible";
+
+  document.getElementById("v2Category").textContent=V2_CATEGORY_LABELS[q.category]||q.category;
+  document.getElementById("v2Qnum").textContent=`QUESTION ${v2State.index+1} / ${visible.length}`;
+  document.getElementById("v2Qbar").style.width=((v2State.index+1)/visible.length*100)+"%";
+  document.getElementById("v2Qtext").textContent=q.label;
+  document.getElementById("v2Sensitive").classList.toggle("hidden",!q.is_sensitive);
+
+  const opts=document.getElementById("v2Options");
+  opts.innerHTML="";
+  if(q.answer_type==="number"){
+    const input=document.createElement("input");
+    input.type="number"; input.min="0"; input.max="20"; input.placeholder="Entre un nombre";
+    input.value=v2State.selected[0]??"";
+    input.oninput=()=>{v2State.selected=input.value===""?[]:[String(input.value)]};
+    opts.appendChild(input);
+  } else {
+    const options=Array.isArray(q.options)?q.options:[];
+    options.forEach(v=>{
+      const b=document.createElement("button");
+      b.className="v2-option"+(v2State.selected.includes(v)?" selected":"");
+      b.textContent=v2Label(v);
+      b.onclick=()=>selectV2Option(v,q.answer_type,b);
+      opts.appendChild(b);
+    });
+  }
+
+  document.getElementById("v2ImportanceWrap").classList.toggle("hidden",!q.allows_importance);
+  document.querySelectorAll("#v2Importance button").forEach(b=>b.classList.toggle("selected",b.dataset.v===v2State.importance));
+  const next=document.getElementById("v2NextBtn");
+  next.textContent=v2State.index===visible.length-1?"TERMINER ✓":"SUIVANT →";
+  document.getElementById("v2SaveMsg").textContent=saved?"Réponse Cloud enregistrée ✓":"";
+}
+
+function selectV2Option(v,type,btn){
+  if(type==="multi_choice"){
+    if(v2State.selected.includes(v)) v2State.selected=v2State.selected.filter(x=>x!==v);
+    else v2State.selected.push(v);
+  }else{
+    v2State.selected=[v];
+  }
+  document.querySelectorAll("#v2Options .v2-option").forEach(b=>{
+    if(type==="multi_choice"){
+      const val=[...document.querySelectorAll("#v2Options .v2-option")].indexOf(b);
+    } else b.classList.remove("selected");
+  });
+  renderV2SelectionOnly(type);
+}
+
+function renderV2SelectionOnly(type){
+  const q=v2VisibleQuestions()[v2State.index];
+  const buttons=[...document.querySelectorAll("#v2Options .v2-option")];
+  const options=Array.isArray(q.options)?q.options:[];
+  buttons.forEach((b,i)=>b.classList.toggle("selected",v2State.selected.includes(options[i])));
+}
+
+function setV2Importance(v){
+  v2State.importance=v;
+  document.querySelectorAll("#v2Importance button").forEach(b=>b.classList.toggle("selected",b.dataset.v===v));
+}
+
+async function saveCurrentV2(){
+  const visible=v2VisibleQuestions();
+  const q=visible[v2State.index];
+  if(!q) return;
+  if(!v2State.selected.length) throw new Error("Choisis une réponse avant de continuer.");
+
+  const payload={
+    user_id:authState.user.id,
+    question_key:q.question_key,
+    category:q.category,
+    answer:v2State.selected,
+    importance:q.allows_importance?v2State.importance:"flexible",
+    is_private:!!q.is_sensitive,
+    updated_at:new Date().toISOString()
+  };
+  const {error}=await sb.from("dna_v2_answers").upsert(payload,{onConflict:"user_id,question_key"});
+  if(error) throw error;
+  v2State.answers[q.question_key]={...payload};
+
+  const visibleAfter=v2VisibleQuestions();
+  const answered=visibleAfter.filter(x=>v2State.answers[x.question_key]).length;
+  const pct=visibleAfter.length?Math.round(answered/visibleAfter.length*100):0;
+  const {error:pErr}=await sb.from("dna_v2_progress").upsert({
+    user_id:authState.user.id,
+    current_category:q.category,
+    current_question:v2State.index,
+    answered_questions:answered,
+    total_questions:visibleAfter.length,
+    completion_percent:pct,
+    completed:pct>=100,
+    updated_at:new Date().toISOString()
+  },{onConflict:"user_id"});
+  if(pErr) console.warn("V2 progress",pErr);
+  updateV2Summary();
+}
+
+async function saveAndNextV2(){
+  if(v2State.busy)return;
+  v2State.busy=true;
+  const msg=document.getElementById("v2SaveMsg");
+  try{
+    msg.textContent="Enregistrement Cloud…";
+    await saveCurrentV2();
+    const visible=v2VisibleQuestions();
+    if(v2State.index>=visible.length-1){
+      msg.textContent="ADN approfondi complété ✓";
+      alert("ADN approfondi enregistré. Ton moteur DESTINY peut maintenant utiliser tes critères profonds et tes non-négociables.");
+      go("dna");
+      return;
+    }
+    v2State.index++;
+    await sb.from("dna_v2_progress").upsert({
+      user_id:authState.user.id,
+      current_category:visible[v2State.index]?.category||"family",
+      current_question:v2State.index,
+      answered_questions:Object.keys(v2State.answers).length,
+      total_questions:v2VisibleQuestions().length,
+      completion_percent:Math.round(Object.keys(v2State.answers).length/Math.max(1,v2VisibleQuestions().length)*100),
+      completed:false,
+      updated_at:new Date().toISOString()
+    },{onConflict:"user_id"});
+    renderV2Question();
+  }catch(e){
+    console.error(e); msg.textContent="";
+    alert(e.message||"Erreur pendant l’enregistrement.");
+  }finally{v2State.busy=false}
+}
+
+function prevV2Question(){
+  if(v2State.index>0){v2State.index--;renderV2Question();}
+  else go("dna");
+}
+
+async function preloadV2Summary(){
+  if(!authState.user)return;
+  try{await loadV2Data()}catch(e){console.warn("ADN approfondi preload",e)}
+}
+
+const demoProfiles=[
+ {name:"Luna",age:42,gender:"femme",city:"Bruxelles",goal:"relation-serieuse",archetype:"Connexion profonde",offset:{Identité:-4,Confiance:-7,"Émotions":3,"Résilience":-2,Ambition:-5,Discipline:2,"Curiosité":4,"Créativité":6,Communication:-2,Empathie:3,Relations:1,"Intimité":4,Autonomie:-6,"Adaptabilité":2,"Décision":-4,Leadership:-8,"Énergie":3,Vision:-3,"Équilibre":5,Projection:-2}},
+ {name:"Élise",age:38,gender:"femme",city:"Waterloo",goal:"vie-commune",archetype:"Équilibre complice",offset:{Identité:3,Confiance:-3,"Émotions":5,"Résilience":2,Ambition:-8,Discipline:-4,"Curiosité":7,"Créativité":4,Communication:3,Empathie:6,Relations:5,"Intimité":5,Autonomie:-2,"Adaptabilité":4,"Décision":-5,Leadership:-6,"Énergie":2,Vision:-5,"Équilibre":8,Projection:-4}},
+ {name:"Maya",age:45,gender:"femme",city:"Namur",goal:"relation-serieuse",archetype:"Élan partagé",offset:{Identité:-2,Confiance:4,"Émotions":-4,"Résilience":5,Ambition:5,Discipline:3,"Curiosité":2,"Créativité":1,Communication:-1,Empathie:-2,Relations:2,"Intimité":-1,Autonomie:4,"Adaptabilité":5,"Décision":3,Leadership:4,"Énergie":4,Vision:5,"Équilibre":-3,Projection:5}},
+ {name:"Sofia",age:49,gender:"femme",city:"Liège",goal:"relation-serieuse",archetype:"Stabilité lumineuse",offset:{Identité:1,Confiance:-1,"Émotions":2,"Résilience":3,Ambition:-4,Discipline:4,"Curiosité":-2,"Créativité":0,Communication:4,Empathie:5,Relations:5,"Intimité":3,Autonomie:-1,"Adaptabilité":1,"Décision":0,Leadership:-2,"Énergie":-1,Vision:1,"Équilibre":5,Projection:2}},
+ {name:"Thomas",age:44,gender:"homme",city:"Bruxelles",goal:"relation-serieuse",archetype:"Complice engagé",offset:{Identité:2,Confiance:2,"Émotions":1,"Résilience":4,Ambition:1,Discipline:3,"Curiosité":3,"Créativité":-1,Communication:4,Empathie:2,Relations:4,"Intimité":2,Autonomie:1,"Adaptabilité":3,"Décision":2,Leadership:1,"Énergie":2,Vision:3,"Équilibre":2,Projection:4}},
+ {name:"Noah",age:36,gender:"homme",city:"Anvers",goal:"rencontre",archetype:"Explorateur sensible",offset:{Identité:-1,Confiance:1,"Émotions":4,"Résilience":0,Ambition:-1,Discipline:-3,"Curiosité":6,"Créativité":5,Communication:2,Empathie:5,Relations:1,"Intimité":3,Autonomie:4,"Adaptabilité":6,"Décision":-2,Leadership:-3,"Énergie":4,Vision:-1,"Équilibre":1,Projection:-2}}
+]
+function clamp(n){return Math.max(0,Math.min(100,Math.round(n)))}
+function profileDims(profile){const out={};dimensions.forEach(d=>out[d]=clamp((data.dimensions[d]??50)+(profile.offset[d]??0)));return out}
+function groupScore(a,b,names){const present=names.filter(x=>a[x]!==undefined&&b[x]!==undefined);if(!present.length)return 0;return Math.round(present.reduce((sum,k)=>sum+(100-Math.abs(a[k]-b[k])),0)/present.length)}
+function compatibility(a,b){
+ const weights={Identité:1.15,Confiance:.8,"Émotions":1,"Résilience":.8,Ambition:.7,Discipline:.65,"Curiosité":.55,"Créativité":.45,Communication:1.3,Empathie:1.3,Relations:1.45,"Intimité":1.4,Autonomie:1.1,"Adaptabilité":.7,"Décision":.55,Leadership:.35,"Énergie":.6,Vision:1.05,"Équilibre":1.1,Projection:1.2};
+ let total=0,w=0;dimensions.forEach(k=>{if(a[k]!==undefined&&b[k]!==undefined){const ww=weights[k]||1;total+=(100-Math.abs(a[k]-b[k]))*ww;w+=ww}});return w?Math.round(total/w):0;
+}
+async function findMatch(){
+ const revealed=document.getElementById("revealedProfile");if(revealed)revealed.classList.add("hidden");
+ if(!authState.user){alert("Connecte-toi d’abord à ton compte DESTINY.");return}
+ const p=data.profile||{};
+ if(!p.birthDate||!p.city){alert("Complète d’abord ton profil de rencontre.");go("profile");return}
+ const empty=document.getElementById("matchEmpty"),btn=empty.querySelector("button"),old=btn.textContent;
+ btn.disabled=true;btn.textContent="RECHERCHE DE TON DESTINY…";
+ try{
+   // 1. Recherche des candidats réciproquement compatibles et DNA V2 complété.
+   const {data:candidates,error:cErr}=await sb.rpc("destiny_find_candidates",{p_user_id:authState.user.id});
+   if(cErr)throw cErr;
+   if(!candidates||!candidates.length){
+     alert("Aucun profil compatible avec un ADN approfondi complet n’est disponible pour le moment.");
+     return;
+   }
+
+   // 2. Calcul du score V3 pour chaque candidat, côté serveur.
+   const scored=[];
+   for(const c of candidates){
+     const {data:scoreRows,error:sErr}=await sb.rpc("destiny_dna_score_v3",{
+       p_user_a:authState.user.id,
+       p_user_b:c.candidate_id
+     });
+     if(sErr){console.warn("DESTINY score V3",c.candidate_id,sErr);continue}
+     const score=scoreRows&&scoreRows[0];
+     if(!score)continue;
+
+     // Les scores par catégorie sont facultatifs : le match principal reste disponible
+     // même si cette RPC n'est pas encore installée.
+     let categoryScores={};
+     try{
+       const {data:catRows,error:catErr}=await sb.rpc("destiny_dna_category_scores",{
+         p_user_a:authState.user.id,
+         p_user_b:c.candidate_id
+       });
+       if(!catErr&&catRows){
+         (catRows||[]).forEach(r=>{
+           const key=r.category||r.category_key||r.name;
+           const val=r.score??r.compatibility_score??r.category_score;
+           if(key!=null&&val!=null)categoryScores[key]=Number(val);
+         });
+       }
+     }catch(catE){console.warn("DESTINY category scores",catE)}
+
+     scored.push({candidate:c,score,categoryScores});
+   }
+   if(!scored.length)throw new Error("Impossible de calculer la compatibilité DNA des candidats.");
+   scored.sort((a,b)=>Number(b.score.final_score??b.score.base_score??0)-Number(a.score.final_score??a.score.base_score??0));
+   const best=scored[0],c=best.candidate,s=best.score,cats=best.categoryScores||{};
+   const finalScore=Number(s.final_score??s.base_score??0);
+   const age=ageFromBirthDate(c.birth_date);
+
+   data.lastMatch={
+     userId:c.candidate_id,
+     name:c.first_name||"Profil Destiny",
+     age:age||"—",
+     gender:c.gender||"",
+     city:c.city||"—",
+     goal:"deep-match",
+     archetype:"Deep Matching",
+     score:Math.round(finalScore*10)/10,
+     baseScore:Number(s.base_score??finalScore),
+     questionsCompared:Number(s.questions_compared||0),
+     exactMatches:Number(s.exact_matches||0),
+     closeMatches:Number(s.close_matches||0),
+     mediumMatches:Number(s.medium_matches||0),
+     lowMatches:Number(s.low_matches||0),
+     conflicts:Number(s.non_negotiable_conflicts||0),
+     v2Scores:{
+       family:cats.family,
+       couple:cats.couple,
+       lifestyle:cats.lifestyle,
+       intimacy:cats.intimacy,
+       project:cats.project,
+       values:cats.values
+     },
+     interest:false,mutual:false,cloud:true,v2:true,v3:true
+   };
+   save();renderMatch(data.lastMatch);
+ }catch(e){
+   console.error(e);alert("Erreur MATCH : "+(e.message||e));
+ }finally{btn.disabled=false;btn.textContent=old}
+}
+function renderMatch(m){
+ if(!m)return;
+ document.getElementById("matchEmpty").classList.add("hidden");document.getElementById("matchResult").classList.remove("hidden");
+ document.getElementById("matchScore").textContent=m.score+"%";
+ if(m.v2 && m.v2Scores){
+   const fallback=m.score??0;
+   const show=v=>v==null?fallback:Math.round(Number(v)*10)/10;
+   document.getElementById("mValues").textContent=show(m.v2Scores.values)+"%";
+   document.getElementById("mRelation").textContent=show(m.v2Scores.couple)+"%";
+   document.getElementById("mCommunication").textContent=show(m.v2Scores.family)+"%";
+   document.getElementById("mProjection").textContent=show(m.v2Scores.project)+"%";
+   const available=[
+     ["Famille",m.v2Scores.family],["Couple",m.v2Scores.couple],["Lifestyle",m.v2Scores.lifestyle],
+     ["Intimité",m.v2Scores.intimacy],["Projet",m.v2Scores.project],["Valeurs",m.v2Scores.values]
+   ].filter(x=>x[1]!=null);
+   if(available.length){
+     document.getElementById("matchWhy").textContent=`ADN approfondi : ${available.map(x=>`${x[0]} ${Math.round(Number(x[1])*10)/10}%`).join(" · ")}.`;
+     document.getElementById("matchStrengths").innerHTML=available.sort((a,b)=>Number(b[1])-Number(a[1])).slice(0,4).map(x=>`<span class="tag">${x[0]} · ${Math.round(Number(x[1])*10)/10}%</span>`).join("");
+   }else{
+     document.getElementById("matchWhy").textContent=m.v3?`DESTINY MATCH v3 a comparé ${m.questionsCompared||0} réponses. ${m.exactMatches||0} réponses identiques, ${m.closeMatches||0} proches et ${m.conflicts||0} conflit(s) non négociable(s). Score de base : ${m.baseScore??m.score}%.`:`Compatibilité ADN approfondi calculée côté serveur.`;
+     document.getElementById("matchStrengths").innerHTML=`<span class="tag">${m.exactMatches||0} correspondances exactes</span><span class="tag">${m.closeMatches||0} proches</span><span class="tag">${m.questionsCompared||0} questions comparées</span>`;
+   }
+ }document.getElementById("matchName").textContent=m.mutual?(m.name+" · "+m.archetype):"Profil mystère";document.getElementById("matchStatus").textContent=m.mutual?"CONNEXION MUTUELLE":m.score>=92?"SIGNAL RARE":m.score>=85?"FORTE COMPATIBILITÉ":"MATCH POTENTIEL";document.getElementById("matchMeta").textContent=`${m.age} ans · ${m.city} · ${m.goal==="vie-commune"?"Construire à deux":m.goal==="relation-serieuse"?"Relation sérieuse":"Faire connaissance"}`;
+ if(m.v2){ /* scores ADN approfondi déjà affichés */ }
+ else if(m.dims){const d=data.dimensions,b=m.dims;const values=groupScore(d,b,["Identité","Empathie","Équilibre","Vision"]), rel=groupScore(d,b,["Relations","Intimité","Autonomie","Empathie"]), com=groupScore(d,b,["Communication","Émotions","Empathie"]), proj=groupScore(d,b,["Vision","Projection","Ambition","Équilibre"]);document.getElementById("mValues").textContent=values+"%";document.getElementById("mRelation").textContent=rel+"%";document.getElementById("mCommunication").textContent=com+"%";document.getElementById("mProjection").textContent=proj+"%";const strengths=dimensions.map(k=>[k,100-Math.abs(d[k]-b[k])]).sort((x,y)=>y[1]-x[1]).slice(0,5);document.getElementById("matchStrengths").innerHTML=strengths.map(x=>`<span class="tag">${x[0]} · ${Math.round(x[1])}%</span>`).join("");document.getElementById("matchWhy").textContent=`Vos profils présentent une proximité forte sur ${strengths.slice(0,3).map(x=>x[0]).join(", ")}. DESTINY recherche un équilibre, pas une copie conforme.`}else{document.getElementById("mValues").textContent=m.score+"%";document.getElementById("mRelation").textContent=m.score+"%";document.getElementById("mCommunication").textContent=m.score+"%";document.getElementById("mProjection").textContent=m.score+"%";document.getElementById("matchStrengths").innerHTML='<span class="tag">DNA comparé côté serveur</span><span class="tag">Réponses privées</span><span class="tag">RLS actif</span>';document.getElementById("matchWhy").textContent="Le score a été calculé côté serveur sur les 20 dimensions. Les réponses DNA détaillées de l’autre membre ne sont pas envoyées à ton téléphone."}
+ const state=document.getElementById("requestState"),btn=document.getElementById("requestBtn");if(state&&btn){if(m.mutual){state.textContent="Intérêt réciproque confirmé. Vous pouvez maintenant vous découvrir.";btn.textContent="MATCH MUTUEL ✓";btn.disabled=true}else if(m.interest){state.textContent="Signal envoyé. Dans la version connectée, DESTINY attendra la réponse de l’autre personne.";btn.textContent="SIGNAL ENVOYÉ ✓";btn.disabled=true}else{state.textContent="Tu peux envoyer un signal discret. Aucune conversation ne s’ouvre sans intérêt réciproque.";btn.textContent="ENVOYER UN SIGNAL ♡";btn.disabled=false}}
+}
+async function loadRevealedAvatar(userId){
+  const img=document.getElementById("revealedAvatarImg");
+  const fallback=document.getElementById("revealedAvatarFallback");
+  if(!img||!fallback||!userId)return;
+  img.classList.add("hidden");
+  fallback.classList.remove("hidden");
+  img.removeAttribute("src");
+  try{
+    const {data:res,error}=await sb.storage.from(AVATAR_BUCKET).createSignedUrl(`${userId}/avatar`,3600);
+    if(error)throw error;
+    if(res?.signedUrl){
+      img.src=res.signedUrl;
+      img.classList.remove("hidden");
+      fallback.classList.add("hidden");
+    }
+  }catch(e){
+    console.warn("Photo du match non accessible",e);
+  }
+}
+
+async function revealMatch(){
+  if(!data.lastMatch)return;
+
+  if(!data.lastMatch.mutual){
+    alert("DESTINY protège la révélation complète : elle s’ouvre uniquement après intérêt réciproque.");
+    return;
+  }
+
+  if(!data.lastMatch.cloud || !data.lastMatch.matchId){
+    alert("Le profil complet n’est disponible qu’après un MATCH MUTUEL enregistré dans DESTINY Cloud.");
+    return;
+  }
+
+  try{
+    const {data:rows,error}=await sb.rpc("get_destiny_match_profile",{
+      p_match_id:data.lastMatch.matchId
+    });
+
+    if(error)throw error;
+
+    const p=rows&&rows[0];
+    if(!p){
+      alert("Profil du match introuvable.");
+      return;
+    }
+
+    data.lastMatch.name=p.first_name||data.lastMatch.name||"Match Destiny";
+    data.lastMatch.city=p.city||data.lastMatch.city||"";
+    data.lastMatch.bio=p.bio||"";
+    save();
+
+    const age =
+      Number(p.age) ||
+      (p.birth_date ? ageFromBirthDate(p.birth_date) : data.lastMatch.age);
+
+    document.getElementById("revealedName").textContent=data.lastMatch.name;
+
+    const meta=[];
+    if(age)meta.push(`${age} ans`);
+    if(data.lastMatch.city)meta.push(data.lastMatch.city);
+    if(p.country)meta.push(p.country);
+    document.getElementById("revealedMeta").textContent=meta.join(" · ")||"Profil DESTINY";
+
+    document.getElementById("revealedBio").textContent=
+      p.bio?.trim() || "Cette personne n’a pas encore ajouté de présentation.";
+
+    document.getElementById("revealedScore").textContent=
+      `${Number(data.lastMatch.score).toFixed(1)}% COMPATIBILITÉ`;
+
+    const verified =
+      p.identity_status==="verified" ||
+      p.verified===true ||
+      p.is_verified===true;
+    document.getElementById("revealedVerified").classList.toggle("hidden",!verified);
+
+    const s=data.lastMatch.v2Scores||{};
+    document.getElementById("rFamily").textContent=(s.family??0)+"%";
+    document.getElementById("rCouple").textContent=(s.couple??0)+"%";
+    document.getElementById("rLifestyle").textContent=(s.lifestyle??0)+"%";
+    document.getElementById("rIntimacy").textContent=(s.intimacy??0)+"%";
+    document.getElementById("rProject").textContent=(s.project??0)+"%";
+    document.getElementById("rValues").textContent=(s.values??0)+"%";
+
+    document.getElementById("matchName").textContent=
+      data.lastMatch.name+" · Deep Matching";
+
+    const revealed=document.getElementById("revealedProfile");
+    revealed.classList.remove("hidden");
+
+    loadRevealedAvatar(data.lastMatch.userId).catch(()=>{});
+
+    revealed.scrollIntoView({
+      behavior:"smooth",
+      block:"start"
+    });
+
+  }catch(e){
+    console.error("Révélation du profil",e);
+    alert("Impossible de révéler le profil : "+(e.message||e));
+  }
+}
+async function sendInterest(){
+ if(!data.lastMatch)return;if(!data.lastMatch.cloud){alert("Ce profil provient d’une ancienne démonstration locale. Relance le matching cloud.");return}
+ const btn=document.getElementById("requestBtn");btn.disabled=true;btn.textContent="ENVOI…";
+ const {data:rows,error}=await sb.rpc("send_destiny_like",{p_receiver_id:data.lastMatch.userId});if(error){btn.disabled=false;btn.textContent="ENVOYER UN SIGNAL ♡";alert(error.message);return}
+ const r=rows&&rows[0];data.lastMatch.interest=true;data.lastMatch.mutual=!!r?.mutual;data.lastMatch.matchId=r?.match_id||null;save();renderMatch(data.lastMatch);if(data.lastMatch.mutual)alert("✨ MATCH MUTUEL — Vous pouvez maintenant vous découvrir.");
+}
+
+
+
+let unreadState={
+  count:0,
+  channel:null,
+  refreshTimer:null
+};
+
+function renderUnreadBadge(){
+  const count=Math.max(0,Number(unreadState.count)||0);
+  const label=count>99?"99+":String(count);
+
+  const nav=document.getElementById("matchUnreadBadge");
+  if(nav){
+    nav.textContent=label;
+    nav.classList.toggle("hidden",count===0);
+  }
+
+  const open=document.getElementById("openChatUnreadBadge");
+  if(open){
+    open.textContent=label;
+    open.classList.toggle("hidden",count===0);
+  }
+}
+
+async function loadUnreadCount(){
+  if(!authState.user){
+    unreadState.count=0;
+    renderUnreadBadge();
+    return 0;
+  }
+
+  try{
+    const {data:count,error}=await sb.rpc("destiny_unread_count");
+    if(error)throw error;
+    unreadState.count=Math.max(0,Number(count)||0);
+    renderUnreadBadge();
+    return unreadState.count;
+  }catch(e){
+    console.warn("Unread count",e);
+    return unreadState.count;
+  }
+}
+
+async function markCurrentChatRead(){
+  const m=data.lastMatch;
+  if(!authState.user || !m?.mutual || !m?.matchId)return;
+
+  try{
+    const {error}=await sb.rpc("destiny_mark_messages_read",{
+      p_match_id:m.matchId
+    });
+    if(error)throw error;
+    await loadUnreadCount();
+  }catch(e){
+    console.warn("Mark messages read",e);
+  }
+}
+
+function scheduleUnreadRefresh(){
+  if(unreadState.refreshTimer)clearTimeout(unreadState.refreshTimer);
+  unreadState.refreshTimer=setTimeout(()=>{
+    unreadState.refreshTimer=null;
+    loadUnreadCount();
+  },140);
+}
+
+async function stopUnreadRealtime(){
+  if(unreadState.refreshTimer){
+    clearTimeout(unreadState.refreshTimer);
+    unreadState.refreshTimer=null;
+  }
+
+  if(unreadState.channel){
+    try{
+      await sb.removeChannel(unreadState.channel);
+    }catch(e){
+      console.warn("Unread realtime remove channel",e);
+    }
+    unreadState.channel=null;
+  }
+}
+
+async function startUnreadRealtime(){
+  if(!authState.user)return;
+
+  await stopUnreadRealtime();
+  await loadUnreadCount();
+
+  const channelName=`destiny-unread-${authState.user.id}`;
+
+  unreadState.channel=sb
+    .channel(channelName)
+    .on(
+      "postgres_changes",
+      {
+        event:"INSERT",
+        schema:"public",
+        table:"messages"
+      },
+      payload=>{
+        const msg=payload?.new;
+        if(!msg || msg.sender_id===authState.user?.id)return;
+
+        const chatView=document.getElementById("chat");
+        const currentMatch=data.lastMatch?.matchId;
+
+        if(chatView?.classList.contains("active") && currentMatch && msg.match_id===currentMatch){
+          setTimeout(async()=>{
+            await markCurrentChatRead();
+            scheduleRealtimeRefresh();
+          },80);
+        }else{
+          scheduleUnreadRefresh();
+        }
+      }
+    )
+    .subscribe();
+}
+
+let chatState={
+  matchId:null,
+  peerId:null,
+  peerName:"Ton match",
+  busy:false,
+  lastCount:0,
+  channel:null,
+  refreshTimer:null
+};
+
+
+async function stopChatRealtime(){
+  if(chatState.refreshTimer){
+    clearTimeout(chatState.refreshTimer);
+    chatState.refreshTimer=null;
+  }
+
+  if(chatState.channel){
+    try{
+      await sb.removeChannel(chatState.channel);
+    }catch(e){
+      console.warn("Realtime remove channel",e);
+    }
+    chatState.channel=null;
+  }
+
+  const status=document.getElementById("chatRealtimeStatus");
+  if(status)status.textContent="● MATCH MUTUEL · conversation privée";
+}
+
+function scheduleRealtimeRefresh(){
+  if(chatState.refreshTimer)clearTimeout(chatState.refreshTimer);
+  chatState.refreshTimer=setTimeout(()=>{
+    chatState.refreshTimer=null;
+    const chatView=document.getElementById("chat");
+    if(chatView?.classList.contains("active"))refreshChat();
+  },120);
+}
+
+async function startChatRealtime(){
+  const m=data.lastMatch;
+  if(!authState.user || !m?.mutual || !m?.matchId)return;
+
+  if(chatState.channel){
+    await stopChatRealtime();
+  }
+
+  chatState.matchId=m.matchId;
+
+  const status=document.getElementById("chatRealtimeStatus");
+  if(status)status.textContent="● MATCH MUTUEL · connexion temps réel…";
+
+  const channelName=`destiny-chat-${m.matchId}-${authState.user.id}`;
+
+  chatState.channel=sb
+    .channel(channelName)
+    .on(
+      "postgres_changes",
+      {
+        event:"INSERT",
+        schema:"public",
+        table:"messages",
+        filter:`match_id=eq.${m.matchId}`
+      },
+      payload=>{
+        if(payload?.new?.match_id!==m.matchId)return;
+        scheduleRealtimeRefresh();
+      }
+    )
+    .subscribe(statusEvent=>{
+      const el=document.getElementById("chatRealtimeStatus");
+      if(!el)return;
+
+      if(statusEvent==="SUBSCRIBED"){
+        el.textContent="● MATCH MUTUEL · TEMPS RÉEL ACTIF";
+      }else if(statusEvent==="CHANNEL_ERROR" || statusEvent==="TIMED_OUT"){
+        el.textContent="◌ MATCH MUTUEL · temps réel indisponible";
+      }else if(statusEvent==="CLOSED"){
+        el.textContent="◌ MATCH MUTUEL · connexion fermée";
+      }
+    });
+}
+
+function formatChatTime(v){
+  try{
+    const d=new Date(v);
+    return d.toLocaleTimeString("fr-BE",{hour:"2-digit",minute:"2-digit"});
+  }catch{return ""}
+}
+
+function escapeHtml(s){
+  return String(s??"")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+
+async function loadChatAvatar(userId){
+  const img=document.getElementById("chatAvatarImg");
+  const fallback=document.getElementById("chatAvatarFallback");
+  if(!img||!fallback||!userId)return;
+  img.classList.add("hidden");
+  fallback.classList.remove("hidden");
+  img.removeAttribute("src");
+  try{
+    const {data:res,error}=await sb.storage.from(AVATAR_BUCKET).createSignedUrl(`${userId}/avatar`,3600);
+    if(error)throw error;
+    if(res?.signedUrl){
+      img.src=res.signedUrl;
+      img.classList.remove("hidden");
+      fallback.classList.add("hidden");
+    }
+  }catch(e){
+    console.warn("Photo chat non accessible",e);
+  }
+}
+
+async function openChat(){
+  const m=data.lastMatch;
+  if(!m?.mutual || !m?.matchId){
+    alert("La conversation est disponible uniquement après un MATCH MUTUEL.");
+    return;
+  }
+
+  chatState.matchId=m.matchId;
+  chatState.peerId=m.userId;
+  chatState.peerName=m.name||"Ton match";
+
+  const peer=document.getElementById("chatPeerName");
+  if(peer)peer.textContent=chatState.peerName;
+
+  loadChatAvatar(chatState.peerId).catch(()=>{});
+  go("chat");
+  markCurrentChatRead().catch(()=>{});
+}
+
+async function refreshChat(){
+  const m=data.lastMatch;
+
+  if(!m?.mutual || !m?.matchId){
+    const box=document.getElementById("chatMessages");
+    if(box)box.innerHTML='<div class="chat-empty">Aucune conversation disponible. Un match mutuel est requis.</div>';
+    return;
+  }
+
+  chatState.matchId=m.matchId;
+  chatState.peerId=m.userId;
+  chatState.peerName=m.name||"Ton match";
+
+  const peer=document.getElementById("chatPeerName");
+  if(peer)peer.textContent=chatState.peerName;
+
+  loadChatAvatar(chatState.peerId).catch(()=>{});
+
+  const box=document.getElementById("chatMessages");
+  if(box)box.innerHTML='<div class="chat-empty">Chargement de la conversation…</div>';
+
+  try{
+    const {data:rows,error}=await sb.rpc("destiny_get_messages",{
+      p_match_id:chatState.matchId,
+      p_limit:200
+    });
+    if(error)throw error;
+
+    renderChatMessages(rows||[]);
+    await markCurrentChatRead();
+  }catch(e){
+    console.error("Chargement chat",e);
+    if(box)box.innerHTML=`<div class="chat-empty">Impossible de charger la conversation.<br>${escapeHtml(e.message||e)}</div>`;
+  }
+}
+
+function renderChatMessages(rows){
+  const box=document.getElementById("chatMessages");
+  if(!box)return;
+
+  if(!rows.length){
+    box.innerHTML='<div class="chat-empty">Votre conversation commence ici.<br>Envoie le premier message ✨</div>';
+    chatState.lastCount=0;
+    return;
+  }
+
+  box.innerHTML=rows.map(r=>{
+    const mine=r.sender_id===authState.user?.id;
+    return `
+      <div class="chat-row ${mine?"mine":"theirs"}">
+        <div class="chat-bubble">
+          <div>${escapeHtml(r.content)}</div>
+          <div class="chat-time">${formatChatTime(r.created_at)}</div>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  chatState.lastCount=rows.length;
+  requestAnimationFrame(()=>{box.scrollTop=box.scrollHeight});
+}
+
+async function sendChatMessage(){
+  if(chatState.busy)return;
+
+  const input=document.getElementById("chatInput");
+  const btn=document.getElementById("chatSendBtn");
+  const text=input?.value?.trim();
+
+  if(!text)return;
+
+  const m=data.lastMatch;
+  if(!m?.mutual || !m?.matchId){
+    alert("MATCH MUTUEL requis.");
+    return;
+  }
+
+  chatState.busy=true;
+  if(btn)btn.disabled=true;
+
+  try{
+    const {error}=await sb.rpc("destiny_send_message",{
+      p_match_id:m.matchId,
+      p_content:text
+    });
+    if(error)throw error;
+
+    input.value="";
+    await refreshChat();
+  }catch(e){
+    console.error("Envoi message",e);
+    alert("Impossible d’envoyer le message : "+(e.message||e));
+  }finally{
+    chatState.busy=false;
+    if(btn)btn.disabled=false;
+    input?.focus();
+  }
+}
+
+function chatKeyDown(event){
+  if(event.key==="Enter"&&!event.shiftKey){
+    event.preventDefault();
+    sendChatMessage();
+  }
+}
+
+
+function identityStatus(){return data?.profile?.identityStatus||"unverified"}
+function renderIdentityStatus(){
+  const status=identityStatus();
+  const badge=document.getElementById("identityBadge");
+  const text=document.getElementById("identityText");
+  const btn=document.getElementById("identityBtn");
+  if(!badge||!text||!btn)return;
+  badge.className="verified-badge";
+  btn.disabled=false;
+  if(status==="verified"){
+    badge.classList.add("ok");badge.textContent="✓ IDENTITÉ VÉRIFIÉE";
+    text.textContent="Ton identité est vérifiée. Ton profil peut apparaître dans les Matchs DESTINY.";
+    btn.textContent="IDENTITÉ VÉRIFIÉE ✓";btn.disabled=true;
+  }else if(status==="pending"){
+    badge.classList.add("pending");badge.textContent="◌ VÉRIFICATION EN COURS";
+    text.textContent="Ta vérification est en cours de traitement.";
+    btn.textContent="VÉRIFICATION EN COURS…";btn.disabled=true;
+  }else if(status==="failed"){
+    badge.classList.add("failed");badge.textContent="! VÉRIFICATION À REFAIRE";
+    text.textContent="La vérification n'a pas pu être validée.";
+    btn.textContent="REFAIRE LA VÉRIFICATION";
+  }else{
+    badge.textContent="○ NON VÉRIFIÉ";
+    text.textContent="Vérifie ton identité pour apparaître dans les Matchs et obtenir le badge DESTINY VERIFIED.";
+    btn.textContent="VÉRIFIER MON IDENTITÉ";
+  }
+}
+async function requestIdentityVerification(){
+  if(!authState.user){alert("Connecte-toi d’abord à ton compte DESTINY.");return}
+  alert("DESTINY VERIFIED est prêt. La vérification Stripe Identity sera activée dès que le compte Stripe administrateur sera validé.");
+}
+
+function ageFromBirthDate(v){if(!v)return null;const d=new Date(v+"T00:00:00"),n=new Date();let a=n.getFullYear()-d.getFullYear();const m=n.getMonth()-d.getMonth();if(m<0||(m===0&&n.getDate()<d.getDate()))a--;return a}
+async function saveProfile(){
+ const birthDate=document.getElementById("pBirthDate").value,age=ageFromBirthDate(birthDate),city=document.getElementById("pCity").value.trim(),country=document.getElementById("pCountry").value.trim();const minAge=Number(document.getElementById("pMinAge").value||18),maxAge=Number(document.getElementById("pMaxAge").value||99);
+ if(!birthDate||!age||age<18||age>99){alert("Indique une date de naissance valide (18 ans minimum).");return}if(!city){alert("Indique ta ville.");return}if(minAge>maxAge){alert("L’âge minimum doit être inférieur à l’âge maximum.");return}
+ const profile={birthDate,age,city,country,gender:document.getElementById("pGender").value,looking:document.getElementById("pLooking").value,goal:document.getElementById("pGoal").value,minAge,maxAge,bio:document.getElementById("pBio").value.trim(),identityStatus:data.profile?.identityStatus||"unverified"};data.profile=profile;save();
+ if(!authState.user){alert("Session cloud absente.");return}
+ const payload={id:authState.user.id,first_name:data.name||authState.user.user_metadata?.first_name||"",birth_date:birthDate,gender:profile.gender,looking_for:profile.looking,city, country:country||null,bio:profile.bio,intention:profile.goal,min_age:minAge,max_age:maxAge,profile_completed:true,updated_at:new Date().toISOString()};
+ const {error}=await sb.from("profiles").upsert(payload,{onConflict:"id"});if(error){alert(error.message);return}render();alert("Profil synchronisé dans DESTINY Cloud ✓")
+}
+function loadProfile(){const p=data.profile||{};const set=(id,v)=>{const el=document.getElementById(id);if(el&&v!==undefined&&v!==null&&v!=="")el.value=v};set("pBirthDate",p.birthDate);set("pCity",p.city);set("pCountry",p.country);set("pGender",p.gender||"homme");set("pLooking",p.looking||"femme");set("pGoal",p.goal||"relation-serieuse");set("pMinAge",p.minAge||28);set("pMaxAge",p.maxAge||55);set("pBio",p.bio)}
+async function loadCloudProfile(){if(!authState.user)return;const {data:p,error}=await sb.from("profiles").select("*").eq("id",authState.user.id).maybeSingle();if(error)return;if(p){const age=ageFromBirthDate(p.birth_date);data.name=p.first_name||data.name||authState.user.user_metadata?.first_name||"";data.profile={birthDate:p.birth_date||"",age,city:p.city||"",country:p.country||"",gender:p.gender||"homme",looking:p.looking_for||"femme",goal:p.intention||"relation-serieuse",minAge:p.min_age||28,maxAge:p.max_age||55,bio:p.bio||"",identityStatus:p.identity_status||"unverified"};save();renderIdentityStatus()}}
+const dnaMap={"Confiance":"confiance","Créativité":"creativite","Communication":"communication","Relations":"relations","Leadership":"leadership","Vision":"vision","Équilibre":"equilibre","Projection":"projection","Identité":"identite","Empathie":"empathie","Émotions":"stabilite","Curiosité":"spontaneite","Autonomie":"autonomie","Discipline":"engagement","Énergie":"sociabilite","Résilience":"sensibilite","Ambition":"ambition","Adaptabilité":"adaptabilite","Décision":"valeurs","Intimité":"intimite"};
+async function syncDNA(){if(!authState.user||!data.confidence)return;const payload={user_id:authState.user.id,completed:true,updated_at:new Date().toISOString()};for(const [label,col] of Object.entries(dnaMap))payload[col]=Math.round(data.dimensions[label]??50);const {error}=await sb.from("dna_profiles").upsert(payload,{onConflict:"user_id"});if(error)console.error("DNA sync",error)}
+async function loadCloudDNA(){if(!authState.user)return false;const {data:d,error}=await sb.from("dna_profiles").select("*").eq("user_id",authState.user.id).maybeSingle();if(error){console.error("DNA load",error);return false}if(!d||!d.completed){data.dimensions={};data.score=0;data.confidence=0;if(!data.qDraft?.answers?.length)data.progress=0;save();return false}const dims={};for(const [label,col] of Object.entries(dnaMap))dims[label]=d[col];data.dimensions=dims;data.confidence=100;data.progress=100;data.score=Math.round(Object.values(dims).reduce((a,b)=>a+(Number(b)||0),0)/Object.keys(dims).length);save();return true}
+async function syncDraftDNA(completed=false){if(!authState.user)return;const answers=Array.isArray(data.qDraft?.answers)?data.qDraft.answers:[];const payload={user_id:authState.user.id,answers,current_index:answers.length,completed:!!completed,updated_at:new Date().toISOString()};const {error}=await sb.from("dna_questionnaires").upsert(payload,{onConflict:"user_id"});if(error)console.error("DNA draft sync",error)}
+async function loadCloudDraft(){if(!authState.user)return;const {data:d,error}=await sb.from("dna_questionnaires").select("answers,current_index,completed").eq("user_id",authState.user.id).maybeSingle();if(error){console.error("DNA draft load",error);return}if(!d)return;const answers=Array.isArray(d.answers)?d.answers:[];data.qDraft={answers,currentIndex:Number(d.current_index)||answers.length};if(!data.confidence)data.progress=Math.round(Math.min(answers.length,questions.length)/questions.length*100);save()}
+
+function answerAsk(){
+ const q=document.getElementById("askText").value.trim();if(!q)return;
+ document.getElementById("askResult").classList.remove("hidden");
+ const entries=Object.entries(data.dimensions||{}).sort((a,b)=>b[1]-a[1]);
+ document.getElementById("askTitle").textContent=entries[0]?`Ton signal dominant : ${entries[0][0]}`:"Ton DNA est encore à construire";
+ document.getElementById("askBody").textContent=entries[0]?`Ta question est interprétée à partir de ton profil actuel. Ton score global est ${data.score}/100 et ta dimension dominante est ${entries[0][0]} (${entries[0][1]}/100). Le moteur conversationnel complet sera connecté dans une prochaine version.`:"Commence par répondre aux 40 questions DNA afin que DESTINY dispose d'un premier profil.";
+}
+async function resetApp(){if(!confirm("Recommencer le DNA ? Tes réponses actuelles seront remplacées."))return;data.dimensions={};data.score=0;data.confidence=0;data.progress=0;data.qDraft={answers:[],currentIndex:0};save();if(authState.user){await Promise.allSettled([sb.from("dna_profiles").update({completed:false,updated_at:new Date().toISOString()}).eq("user_id",authState.user.id),sb.from("dna_questionnaires").upsert({user_id:authState.user.id,answers:[],current_index:0,completed:false,updated_at:new Date().toISOString()},{onConflict:"user_id"})])}render();go("dna")}
+if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}))}
+bootAuth();render();renderUnreadBadge();setTimeout(()=>preloadV2Summary(),1200);
+</script>
+</body>
+</html>
