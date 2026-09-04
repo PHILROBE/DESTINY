@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#07080c">
-<title>DESTINY v2.8 — MATCH REVEAL</title>
+<title>DESTINY v2.9 — PRIVATE CHAT</title>
 <link rel="manifest" href="./manifest.webmanifest">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -74,6 +74,32 @@ textarea,input,select{width:100%;background:#0e1016;border:1px solid var(--line)
 .reveal-cat span{display:block;color:var(--muted);font-size:10px;letter-spacing:1.2px;text-transform:uppercase}
 .reveal-cat b{display:block;font-size:21px;font-weight:300;margin-top:4px}
 .reveal-verified{display:inline-flex;align-items:center;gap:6px;margin-top:8px;padding:6px 9px;border-radius:99px;border:1px solid rgba(120,213,154,.35);background:rgba(120,213,154,.08);color:#9be6b5;font-size:10px}
+
+
+/* ============================================================
+   DESTINY v2.9 — PRIVATE CHAT
+   ============================================================ */
+.chat-shell{display:flex;flex-direction:column;min-height:72vh}
+.chat-head-card{display:flex;align-items:center;gap:12px}
+.chat-avatar{width:54px;height:54px;border-radius:50%;overflow:hidden;display:grid;place-items:center;background:linear-gradient(145deg,rgba(208,176,113,.22),rgba(145,129,255,.22));border:1px solid #3a3d49;flex:0 0 auto;font-size:20px}
+.chat-avatar img{width:100%;height:100%;object-fit:cover;display:block}
+.chat-peer{font-size:20px;font-weight:300;margin:0}
+.chat-status{font-size:11px;color:#9be6b5;margin-top:3px}
+.chat-messages{display:flex;flex-direction:column;gap:9px;min-height:360px;max-height:58vh;overflow-y:auto;padding:8px 2px 16px;scroll-behavior:smooth}
+.chat-empty{margin:auto;text-align:center;color:var(--muted);font-size:13px;line-height:1.6;padding:40px 18px}
+.chat-row{display:flex}
+.chat-row.mine{justify-content:flex-end}
+.chat-row.theirs{justify-content:flex-start}
+.chat-bubble{max-width:82%;padding:11px 13px;border-radius:17px;line-height:1.45;font-size:14px;word-wrap:break-word;white-space:pre-wrap}
+.chat-row.mine .chat-bubble{background:linear-gradient(145deg,rgba(208,176,113,.95),rgba(187,151,87,.95));color:#111;border-bottom-right-radius:6px}
+.chat-row.theirs .chat-bubble{background:#171923;border:1px solid var(--line);color:#eee;border-bottom-left-radius:6px}
+.chat-time{font-size:10px;opacity:.7;margin-top:5px}
+.chat-composer{position:sticky;bottom:78px;background:rgba(7,8,12,.96);padding-top:10px}
+.chat-compose-row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end}
+.chat-compose-row textarea{resize:none;min-height:50px;max-height:130px}
+.chat-send{width:52px;height:52px;border:0;border-radius:15px;background:var(--gold);color:#111;font-size:20px;font-weight:800}
+.chat-note{font-size:10px;color:var(--muted);margin-top:7px;text-align:center}
+.chat-open-btn{margin-top:12px}
 
 </style>
 </head>
@@ -242,6 +268,44 @@ textarea,input,select{width:100%;background:#0e1016;border:1px solid var(--line)
       <div class="notice" style="margin-top:14px">
         Les réponses détaillées ADN approfondi restent privées. Seuls le profil de rencontre et les scores de compatibilité sont révélés après consentement mutuel.
       </div>
+      <button id="openChatBtn" class="btn chat-open-btn" onclick="openChat()">💬 OUVRIR LA CONVERSATION</button>
+    </div>
+  </div>
+</div>
+
+
+<div id="chat" class="view">
+  <div class="top">
+    <div>
+      <div class="brand">MESSAGES</div>
+      <div class="eyebrow">PRIVATE CHAT · MATCH MUTUEL</div>
+    </div>
+    <button class="iconbtn" onclick="go('match')">×</button>
+  </div>
+
+  <div class="card chat-head-card">
+    <div class="chat-avatar">
+      <span id="chatAvatarFallback">♡</span>
+      <img id="chatAvatarImg" class="hidden" alt="Photo du match">
+    </div>
+    <div style="min-width:0;flex:1">
+      <h2 class="chat-peer" id="chatPeerName">Ton match</h2>
+      <div class="chat-status">● MATCH MUTUEL · conversation privée</div>
+    </div>
+    <button class="iconbtn" type="button" onclick="refreshChat()" title="Actualiser">↻</button>
+  </div>
+
+  <div class="card chat-shell">
+    <div id="chatMessages" class="chat-messages">
+      <div class="chat-empty">Chargement de la conversation…</div>
+    </div>
+
+    <div class="chat-composer">
+      <div class="chat-compose-row">
+        <textarea id="chatInput" rows="2" maxlength="2000" placeholder="Écris un message…" onkeydown="chatKeyDown(event)"></textarea>
+        <button id="chatSendBtn" class="chat-send" type="button" onclick="sendChatMessage()" aria-label="Envoyer">➤</button>
+      </div>
+      <div class="chat-note">Conversation visible uniquement par les deux personnes de ce match.</div>
     </div>
   </div>
 </div>
@@ -306,7 +370,7 @@ textarea,input,select{width:100%;background:#0e1016;border:1px solid var(--line)
     <button class="btn dark" style="margin-top:14px" onclick="logout()">SE DÉCONNECTER</button>
     <button class="btn dark danger" style="margin-top:10px" onclick="clearLocalData()">EFFACER LES DONNÉES LOCALES</button>
   </div>
-  <div class="notice">Version v2.7 MATCH V3 : compte, profil, photo Cloud, DNA psychologique et ADN approfondi synchronisés dans Supabase. Les réponses sensibles restent privées.</div>
+  <div class="notice">Version v2.9 PRIVATE CHAT : compte, profil, photo Cloud, DNA psychologique, ADN approfondi, match mutuel, profil révélé et messagerie privée synchronisés dans Supabase. Les réponses sensibles restent privées.</div>
   <button class="btn dark" style="margin-top:12px" onclick="resetApp()">Recommencer le DNA</button>
 </div>
 
@@ -558,6 +622,7 @@ function go(id){
  if(id==="questionnaireV2")renderV2Question();
  if(id==="profile"){loadProfile();refreshAvatar().catch(()=>{})}
  if(id==="match"&&data.lastMatch)renderMatch(data.lastMatch);
+ if(id==="chat")refreshChat();
  render();
 }
 function startQuestionnaire(){
@@ -1174,6 +1239,175 @@ async function sendInterest(){
  const {data:rows,error}=await sb.rpc("send_destiny_like",{p_receiver_id:data.lastMatch.userId});if(error){btn.disabled=false;btn.textContent="ENVOYER UN SIGNAL ♡";alert(error.message);return}
  const r=rows&&rows[0];data.lastMatch.interest=true;data.lastMatch.mutual=!!r?.mutual;data.lastMatch.matchId=r?.match_id||null;save();renderMatch(data.lastMatch);if(data.lastMatch.mutual)alert("✨ MATCH MUTUEL — Vous pouvez maintenant vous découvrir.");
 }
+
+
+let chatState={
+  matchId:null,
+  peerId:null,
+  peerName:"Ton match",
+  busy:false,
+  lastCount:0
+};
+
+function formatChatTime(v){
+  try{
+    const d=new Date(v);
+    return d.toLocaleTimeString("fr-BE",{hour:"2-digit",minute:"2-digit"});
+  }catch{return ""}
+}
+
+function escapeHtml(s){
+  return String(s??"")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+
+async function loadChatAvatar(userId){
+  const img=document.getElementById("chatAvatarImg");
+  const fallback=document.getElementById("chatAvatarFallback");
+  if(!img||!fallback||!userId)return;
+  img.classList.add("hidden");
+  fallback.classList.remove("hidden");
+  img.removeAttribute("src");
+  try{
+    const {data:res,error}=await sb.storage.from(AVATAR_BUCKET).createSignedUrl(`${userId}/avatar`,3600);
+    if(error)throw error;
+    if(res?.signedUrl){
+      img.src=res.signedUrl;
+      img.classList.remove("hidden");
+      fallback.classList.add("hidden");
+    }
+  }catch(e){
+    console.warn("Photo chat non accessible",e);
+  }
+}
+
+async function openChat(){
+  const m=data.lastMatch;
+  if(!m?.mutual || !m?.matchId){
+    alert("La conversation est disponible uniquement après un MATCH MUTUEL.");
+    return;
+  }
+
+  chatState.matchId=m.matchId;
+  chatState.peerId=m.userId;
+  chatState.peerName=m.name||"Ton match";
+
+  const peer=document.getElementById("chatPeerName");
+  if(peer)peer.textContent=chatState.peerName;
+
+  loadChatAvatar(chatState.peerId).catch(()=>{});
+  go("chat");
+}
+
+async function refreshChat(){
+  const m=data.lastMatch;
+
+  if(!m?.mutual || !m?.matchId){
+    const box=document.getElementById("chatMessages");
+    if(box)box.innerHTML='<div class="chat-empty">Aucune conversation disponible. Un match mutuel est requis.</div>';
+    return;
+  }
+
+  chatState.matchId=m.matchId;
+  chatState.peerId=m.userId;
+  chatState.peerName=m.name||"Ton match";
+
+  const peer=document.getElementById("chatPeerName");
+  if(peer)peer.textContent=chatState.peerName;
+
+  loadChatAvatar(chatState.peerId).catch(()=>{});
+
+  const box=document.getElementById("chatMessages");
+  if(box)box.innerHTML='<div class="chat-empty">Chargement de la conversation…</div>';
+
+  try{
+    const {data:rows,error}=await sb.rpc("destiny_get_messages",{
+      p_match_id:chatState.matchId,
+      p_limit:200
+    });
+    if(error)throw error;
+
+    renderChatMessages(rows||[]);
+  }catch(e){
+    console.error("Chargement chat",e);
+    if(box)box.innerHTML=`<div class="chat-empty">Impossible de charger la conversation.<br>${escapeHtml(e.message||e)}</div>`;
+  }
+}
+
+function renderChatMessages(rows){
+  const box=document.getElementById("chatMessages");
+  if(!box)return;
+
+  if(!rows.length){
+    box.innerHTML='<div class="chat-empty">Votre conversation commence ici.<br>Envoie le premier message ✨</div>';
+    chatState.lastCount=0;
+    return;
+  }
+
+  box.innerHTML=rows.map(r=>{
+    const mine=r.sender_id===authState.user?.id;
+    return `
+      <div class="chat-row ${mine?"mine":"theirs"}">
+        <div class="chat-bubble">
+          <div>${escapeHtml(r.content)}</div>
+          <div class="chat-time">${formatChatTime(r.created_at)}</div>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  chatState.lastCount=rows.length;
+  requestAnimationFrame(()=>{box.scrollTop=box.scrollHeight});
+}
+
+async function sendChatMessage(){
+  if(chatState.busy)return;
+
+  const input=document.getElementById("chatInput");
+  const btn=document.getElementById("chatSendBtn");
+  const text=input?.value?.trim();
+
+  if(!text)return;
+
+  const m=data.lastMatch;
+  if(!m?.mutual || !m?.matchId){
+    alert("MATCH MUTUEL requis.");
+    return;
+  }
+
+  chatState.busy=true;
+  if(btn)btn.disabled=true;
+
+  try{
+    const {error}=await sb.rpc("destiny_send_message",{
+      p_match_id:m.matchId,
+      p_content:text
+    });
+    if(error)throw error;
+
+    input.value="";
+    await refreshChat();
+  }catch(e){
+    console.error("Envoi message",e);
+    alert("Impossible d’envoyer le message : "+(e.message||e));
+  }finally{
+    chatState.busy=false;
+    if(btn)btn.disabled=false;
+    input?.focus();
+  }
+}
+
+function chatKeyDown(event){
+  if(event.key==="Enter"&&!event.shiftKey){
+    event.preventDefault();
+    sendChatMessage();
+  }
+}
+
 
 function identityStatus(){return data?.profile?.identityStatus||"unverified"}
 function renderIdentityStatus(){
