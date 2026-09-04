@@ -7,6 +7,7 @@
 <title>DESTINY v3.2 — PERSISTENT MATCH PROFILE</title>
 <link rel="manifest" href="./manifest.webmanifest">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- DESTINY build v3.5-live-chat-fix -->
 <style>
 :root{--bg:#07080c;--panel:#11131a;--gold:#d0b071;--violet:#9181ff;--text:#f6f3ec;--muted:#999ba6;--line:#292c37}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(600px 300px at 50% -80px,#282033 0,#07080c 65%);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif}
@@ -1485,7 +1486,8 @@ let chatState={
   pollSeq:0,
   typingTimer:null,
   peerTypingTimer:null,
-  lastTypingSentAt:0
+  lastTypingSentAt:0,
+  liveSeen:new Set()
 };
 
 function setPeerTyping(active){
@@ -1661,6 +1663,20 @@ async function startChatRealtime(){
     )
     .on(
       "broadcast",
+      {event:"message-live"},
+      ({payload})=>{
+        if(!payload || payload.match_id!==m.matchId)return;
+        if(payload.sender_id===authState.user?.id)return;
+        setPeerTyping(false);
+        appendLiveMessage(payload);
+        setTimeout(()=>markCurrentChatRead().catch(()=>{}),80);
+        // Le rafraîchissement DB reste un filet de sécurité, mais l'affichage
+        // ne dépend plus de lui.
+        scheduleRealtimeRefresh(250);
+      }
+    )
+    .on(
+      "broadcast",
       {event:"message-ping"},
       ({payload})=>{
         if(!payload || payload.match_id!==m.matchId)return;
@@ -1736,6 +1752,7 @@ async function openChat(){
   chatState.peerId=m.userId;
   chatState.peerName=m.name||"Ton match";
   chatState.lastSignature="";
+  chatState.liveSeen.clear();
 
   const peer=document.getElementById("chatPeerName");
   if(peer)peer.textContent=chatState.peerName;
@@ -1779,6 +1796,34 @@ async function refreshChat(silent=false){
     console.error("Chargement chat",e);
     if(box && !silent)box.innerHTML=`<div class="chat-empty">Impossible de charger la conversation.<br>${escapeHtml(e.message||e)}</div>`;
   }
+}
+
+function appendLiveMessage(msg){
+  const box=document.getElementById("chatMessages");
+  if(!box || !msg || !msg.content)return;
+
+  const key=String(msg.client_nonce||msg.id||`${msg.sender_id||""}|${msg.created_at||""}|${msg.content||""}`);
+  if(chatState.liveSeen.has(key))return;
+  chatState.liveSeen.add(key);
+  if(chatState.liveSeen.size>300){
+    const first=chatState.liveSeen.values().next().value;
+    chatState.liveSeen.delete(first);
+  }
+
+  const empty=box.querySelector(".chat-empty");
+  if(empty)box.innerHTML="";
+
+  const mine=msg.sender_id===authState.user?.id;
+  const row=document.createElement("div");
+  row.className=`chat-row ${mine?"mine":"theirs"}`;
+  row.dataset.liveKey=key;
+  row.innerHTML=`
+    <div class="chat-bubble">
+      <div>${escapeHtml(msg.content)}</div>
+      <div class="chat-time">${formatChatTime(msg.created_at||new Date().toISOString())}</div>
+    </div>`;
+  box.appendChild(row);
+  requestAnimationFrame(()=>{box.scrollTop=box.scrollHeight});
 }
 
 function renderChatMessages(rows){
@@ -1847,10 +1892,25 @@ async function sendChatMessage(){
 
     input.value="";
 
-    // Signal immédiat à l'autre navigateur. Ce broadcast ne dépend pas de
-    // l'activation de postgres_changes sur la table messages.
+    // v3.5 : affichage instantané indépendant du rechargement SQL.
+    // Le contenu du message est envoyé directement sur le canal Realtime
+    // partagé par les deux membres du match.
+    const livePayload={
+      match_id:m.matchId,
+      sender_id:authState.user.id,
+      content:text,
+      created_at:new Date().toISOString(),
+      client_nonce:`${authState.user.id}-${Date.now()}-${Math.random().toString(36).slice(2)}`
+    };
+    appendLiveMessage(livePayload);
+
     if(chatState.channel){
       try{
+        await chatState.channel.send({
+          type:"broadcast",
+          event:"message-live",
+          payload:livePayload
+        });
         await chatState.channel.send({
           type:"broadcast",
           event:"message-ping",
@@ -1861,11 +1921,12 @@ async function sendChatMessage(){
           }
         });
       }catch(e){
-        console.warn("Message ping",e);
+        console.warn("Message live broadcast",e);
       }
     }
 
-    await refreshChat(true);
+    // Réconciliation avec la base, sans bloquer l'affichage instantané.
+    setTimeout(()=>refreshChat(true).catch(()=>{}),250);
   }catch(e){
     console.error("Envoi message",e);
     alert("Impossible d’envoyer le message : "+(e.message||e));
