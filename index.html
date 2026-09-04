@@ -7,7 +7,7 @@
 <title>DESTINY v3.6 — TYPING INDICATOR</title>
 <link rel="manifest" href="./manifest.webmanifest">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<!-- DESTINY build v4.8-realtime-dual-channel -->
+<!-- DESTINY build v4.9-realtime-persistent-match-bus -->
 <style>
 :root{--bg:#07080c;--panel:#11131a;--gold:#d0b071;--violet:#9181ff;--text:#f6f3ec;--muted:#999ba6;--line:#292c37}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(600px 300px at 50% -80px,#282033 0,#07080c 65%);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif}
@@ -535,7 +535,7 @@ textarea,input,select{width:100%;background:#0e1016;border:1px solid var(--line)
     <button class="btn dark" style="margin-top:14px" onclick="logout()">SE DÉCONNECTER</button>
     <button class="btn dark danger" style="margin-top:10px" onclick="clearLocalData()">EFFACER LES DONNÉES LOCALES</button>
   </div>
-  <div class="notice">Version v3.6 TYPING INDICATOR : profil de match révélé conservé, accès direct à la conversation, détails de compatibilité repliables, messagerie privée temps réel renforcée, indicateur de saisie et compteur de messages non lus synchronisés dans Supabase. Les réponses sensibles restent privées.</div>
+  <div class="notice">Version v4.9 REALTIME PERSISTENT MATCH BUS : profil de match révélé conservé, accès direct à la conversation, détails de compatibilité repliables, messagerie privée temps réel renforcée, indicateur de saisie et compteur de messages non lus synchronisés dans Supabase. Les réponses sensibles restent privées.</div>
   <button class="btn dark" style="margin-top:12px" onclick="resetApp()">Recommencer le DNA</button>
 </div>
 
@@ -1447,6 +1447,7 @@ async function sendInterest(){
 let unreadState={
   count:0,
   channel:null,
+  channelName:null,
   refreshTimer:null,
   pollTimer:null,
   pollSeq:0,
@@ -1564,41 +1565,80 @@ function startUnreadPolling(){
   unreadState.pollTimer=setTimeout(tick,1200);
 }
 
+
+function currentUnreadChannelName(){
+  const matchId=data.lastMatch?.matchId;
+  if(!authState.user)return null;
+  return matchId
+    ? `destiny-unread-match-${matchId}`
+    : `destiny-unread-user-${authState.user.id}`;
+}
+
+async function ensureUnreadRealtimeForCurrentMatch(){
+  if(!authState.user)return;
+  const wanted=currentUnreadChannelName();
+  if(!wanted)return;
+  if(unreadState.channel && unreadState.channelName===wanted)return;
+  await startUnreadRealtime();
+}
+
+async function sendPersistentMatchBroadcast(eventName,payload){
+  if(!authState.user)return false;
+  const matchId=payload?.match_id||data.lastMatch?.matchId;
+  if(!matchId)return false;
+
+  try{
+    await ensureUnreadRealtimeForCurrentMatch();
+    if(!unreadState.channel || unreadState.channelName!==`destiny-unread-match-${matchId}`)return false;
+    const result=await unreadState.channel.send({
+      type:"broadcast",
+      event:eventName,
+      payload
+    });
+    return result==="ok" || result===undefined;
+  }catch(e){
+    console.warn("Persistent match broadcast",eventName,e);
+    return false;
+  }
+}
+
 async function broadcastUnreadToPeer(payload){
   const peerId=data.lastMatch?.userId;
   const matchId=payload?.match_id||data.lastMatch?.matchId;
   if(!peerId || !matchId || !authState.user)return;
 
-  // v3.9 : canal de notification déterministe par MATCH.
-  // Les deux membres écoutent exactement le même canal même si le chat est fermé.
+  const messagePayload={
+    match_id:matchId,
+    sender_id:authState.user.id,
+    recipient_id:peerId,
+    sent_at:Date.now(),
+    client_nonce:payload.client_nonce||null,
+    content:payload.content||null,
+    created_at:payload.created_at||new Date().toISOString()
+  };
+
+  // v4.9 : chemin principal = canal persistant déjà ouvert par les 2 membres.
+  // On évite de créer / détruire un canal temporaire à chaque message.
+  const sent=await sendPersistentMatchBroadcast("unread-message",messagePayload);
+  if(sent)return;
+
+  // Filet de sécurité si le canal persistant n'est pas encore prêt.
   const ch=sb.channel(`destiny-unread-match-${matchId}`,{config:{broadcast:{self:false}}});
   let finished=false;
   const cleanup=()=>{
     if(finished)return;
     finished=true;
-    setTimeout(()=>sb.removeChannel(ch).catch(()=>{}),120);
+    setTimeout(()=>sb.removeChannel(ch).catch(()=>{}),180);
   };
 
   try{
     await new Promise((resolve,reject)=>{
-      const timeout=setTimeout(()=>reject(new Error("Unread broadcast timeout")),2500);
+      const timeout=setTimeout(()=>reject(new Error("Unread broadcast timeout")),3000);
       ch.subscribe(async status=>{
         if(status==="SUBSCRIBED"){
           clearTimeout(timeout);
           try{
-            await ch.send({
-              type:"broadcast",
-              event:"unread-message",
-              payload:{
-                match_id:matchId,
-                sender_id:authState.user.id,
-                recipient_id:peerId,
-                sent_at:Date.now(),
-                client_nonce:payload.client_nonce||null,
-                content:payload.content||null,
-                created_at:payload.created_at||new Date().toISOString()
-              }
-            });
+            await ch.send({type:"broadcast",event:"unread-message",payload:messagePayload});
             resolve();
           }catch(e){reject(e)}
         }else if(status==="CHANNEL_ERROR" || status==="TIMED_OUT"){
@@ -1608,7 +1648,7 @@ async function broadcastUnreadToPeer(payload){
       });
     });
   }catch(e){
-    console.warn("Unread live broadcast",e);
+    console.warn("Unread live broadcast fallback",e);
   }finally{
     cleanup();
   }
@@ -1632,6 +1672,7 @@ async function stopUnreadRealtime(){
       console.warn("Unread realtime remove channel",e);
     }
     unreadState.channel=null;
+    unreadState.channelName=null;
   }
 }
 
@@ -1685,6 +1726,7 @@ async function startUnreadRealtime(){
     ? `destiny-unread-match-${matchId}`
     : `destiny-unread-user-${authState.user.id}`;
 
+  unreadState.channelName=channelName;
   unreadState.channel=sb
     .channel(channelName,{config:{broadcast:{self:false},presence:{key:authState.user.id}}})
     .on("presence",{event:"sync"},()=>refreshPresenceFromChannel())
@@ -1726,6 +1768,32 @@ async function startUnreadRealtime(){
           bumpUnreadInstantly();
           // Réconciliation avec Supabase quelques instants plus tard.
           scheduleUnreadRefresh(350);
+        }
+      }
+    )
+    .on(
+      "broadcast",
+      {event:"message-live-fallback"},
+      ({payload})=>{
+        if(!payload || payload.match_id!==data.lastMatch?.matchId)return;
+        if(payload.sender_id===authState.user?.id)return;
+        if(payload.recipient_id && payload.recipient_id!==authState.user?.id)return;
+
+        const chatView=document.getElementById("chat");
+        if(chatView?.classList.contains("active")){
+          setPeerTyping(false);
+          appendLiveMessage(payload);
+          if(payload.client_nonce){
+            unreadState.pendingReceipts.add(payload.client_nonce);
+            sendUnreadReceipt("receipt-delivered",payload.client_nonce).catch(()=>{});
+            setTimeout(()=>sendUnreadReceipt("receipt-read",payload.client_nonce).catch(()=>{}),30);
+            unreadState.pendingReceipts.delete(payload.client_nonce);
+          }
+          setTimeout(()=>markCurrentChatRead().catch(()=>{}),60);
+          scheduleRealtimeRefresh(140);
+        }else{
+          bumpUnreadInstantly();
+          scheduleUnreadRefresh(250);
         }
       }
     )
@@ -1839,22 +1907,25 @@ async function broadcastTyping(active){
     sender_id:authState.user.id,
     typing:!!active
   };
+
   const sends=[];
   if(chatState.channel){
-    sends.push(chatState.channel.send({type:"broadcast",event:"typing",payload}));
+    sends.push(
+      chatState.channel.send({type:"broadcast",event:"typing",payload})
+        .catch(e=>console.warn("Typing chat channel",e))
+    );
   }
-  // v4.8 : second chemin sur le canal global du match, déjà utilisé avec
-  // succès par les badges. Ainsi l'indicateur de saisie ne dépend plus d'un
-  // seul abonnement Realtime.
-  if(unreadState.channel && data.lastMatch?.matchId===chatState.matchId){
-    sends.push(unreadState.channel.send({type:"broadcast",event:"typing-fallback",payload}));
-  }
-  if(!sends.length)return;
+
+  sends.push(
+    sendPersistentMatchBroadcast("typing-fallback",payload)
+      .catch(e=>console.warn("Typing match bus",e))
+  );
+
   try{await Promise.allSettled(sends)}catch(e){console.warn("Typing broadcast",e)}
 }
 
 function chatInputChanged(){
-  if(!chatState.channel)return;
+  if(!chatState.matchId)return;
 
   const now=Date.now();
   if(now-chatState.lastTypingSentAt>650){
@@ -1955,9 +2026,9 @@ function startChatPolling(){
     if(!chatView?.classList.contains("active"))return;
     await forceChatSync();
     if(seq!==chatState.pollSeq)return;
-    chatState.pollTimer=setTimeout(tick,1000);
+    chatState.pollTimer=setTimeout(tick,650);
   };
-  chatState.pollTimer=setTimeout(tick,700);
+  chatState.pollTimer=setTimeout(tick,300);
 }
 
 async function startChatRealtime(){
@@ -1974,6 +2045,13 @@ async function startChatRealtime(){
 
   const status=document.getElementById("chatRealtimeStatus");
   if(status)status.textContent="● MATCH MUTUEL · connexion temps réel…";
+
+  // v4.9 : garantit que le canal persistant du match est le bon,
+  // même après reconnexion, changement de vue ou reprise d'onglet.
+  ensureUnreadRealtimeForCurrentMatch().catch(()=>{});
+
+  // Le polling démarre immédiatement : il ne dépend pas de l'état WebSocket.
+  startChatPolling();
 
   // Les deux membres du match utilisent exactement le même canal.
   const channelName=`destiny-chat-${m.matchId}`;
@@ -2070,10 +2148,7 @@ async function startChatRealtime(){
       }
     });
 
-  // Filet de sécurité indépendant de la réplication Postgres Realtime :
-  // tant que le chat reste ouvert, on relit la conversation chaque seconde.
-  // Cela fonctionne même si la table messages n'est pas publiée dans Realtime.
-  startChatPolling();
+  // Le polling v4.9 tourne déjà depuis l'entrée dans la conversation.
 }
 
 function formatChatTime(v){
@@ -2131,6 +2206,7 @@ async function openChat(){
 
   loadChatAvatar(chatState.peerId).catch(()=>{});
   renderPeerPresence();
+  ensureUnreadRealtimeForCurrentMatch().catch(()=>{});
   go("chat");
   markCurrentChatRead().catch(()=>{});
 }
@@ -2440,6 +2516,13 @@ async function sendChatMessage(){
     // Son badge "Match / Conversation" s'allume immédiatement sur Accueil, Profil, etc.
     broadcastUnreadToPeer(livePayload).catch(()=>{});
 
+    // v4.9 : deuxième diffusion immédiate sur le bus persistant du match.
+    // Le destinataire l'écoute même si son canal de chat dédié a été interrompu.
+    sendPersistentMatchBroadcast("message-live-fallback",{
+      ...livePayload,
+      recipient_id:m.userId
+    }).catch(()=>{});
+
     if(chatState.channel){
       try{
         await chatState.channel.send({
@@ -2462,7 +2545,8 @@ async function sendChatMessage(){
     }
 
     // Réconciliation avec la base, sans bloquer l'affichage instantané.
-    setTimeout(()=>refreshChat(true).catch(()=>{}),250);
+    setTimeout(()=>refreshChat(true).catch(()=>{}),120);
+    setTimeout(()=>refreshChat(true).catch(()=>{}),700);
   }catch(e){
     console.error("Envoi message",e);
     alert("Impossible d’envoyer le message : "+(e.message||e));
@@ -2488,18 +2572,21 @@ setInterval(()=>{
 
 // Resynchronisation immédiate quand le navigateur revient au premier plan.
 window.addEventListener("focus",()=>{
+  ensureUnreadRealtimeForCurrentMatch().catch(()=>{});
   const chatView=document.getElementById("chat");
   if(chatView?.classList.contains("active"))forceChatSync();
   loadUnreadCount().catch(()=>{});
 });
 document.addEventListener("visibilitychange",()=>{
   if(document.visibilityState==="visible"){
+    ensureUnreadRealtimeForCurrentMatch().catch(()=>{});
     const chatView=document.getElementById("chat");
     if(chatView?.classList.contains("active"))forceChatSync();
     loadUnreadCount().catch(()=>{});
   }
 });
 window.addEventListener("pageshow",()=>{
+  ensureUnreadRealtimeForCurrentMatch().catch(()=>{});
   const chatView=document.getElementById("chat");
   if(chatView?.classList.contains("active"))forceChatSync();
 });
