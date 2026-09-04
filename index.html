@@ -7,7 +7,7 @@
 <title>DESTINY v3.6 — TYPING INDICATOR</title>
 <link rel="manifest" href="./manifest.webmanifest">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<!-- DESTINY build v3.8-typing-bottom -->
+<!-- DESTINY build v3.9-typing-bottom -->
 <style>
 :root{--bg:#07080c;--panel:#11131a;--gold:#d0b071;--violet:#9181ff;--text:#f6f3ec;--muted:#999ba6;--line:#292c37}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(600px 300px at 50% -80px,#282033 0,#07080c 65%);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif}
@@ -1372,7 +1372,7 @@ async function sendInterest(){
  if(!data.lastMatch)return;if(!data.lastMatch.cloud){alert("Ce profil provient d’une ancienne démonstration locale. Relance le matching cloud.");return}
  const btn=document.getElementById("requestBtn");btn.disabled=true;btn.textContent="ENVOI…";
  const {data:rows,error}=await sb.rpc("send_destiny_like",{p_receiver_id:data.lastMatch.userId});if(error){btn.disabled=false;btn.textContent="ENVOYER UN SIGNAL ♡";alert(error.message);return}
- const r=rows&&rows[0];data.lastMatch.interest=true;data.lastMatch.mutual=!!r?.mutual;data.lastMatch.matchId=r?.match_id||null;if(!data.lastMatch.revealed)data.lastMatch.revealed=false;save();renderMatch(data.lastMatch);if(data.lastMatch.mutual)alert("✨ MATCH MUTUEL — Vous pouvez maintenant vous découvrir.");
+ const r=rows&&rows[0];data.lastMatch.interest=true;data.lastMatch.mutual=!!r?.mutual;data.lastMatch.matchId=r?.match_id||null;if(!data.lastMatch.revealed)data.lastMatch.revealed=false;save();renderMatch(data.lastMatch);startUnreadRealtime().catch(()=>{});if(data.lastMatch.mutual)alert("✨ MATCH MUTUEL — Vous pouvez maintenant vous découvrir.");
 }
 
 
@@ -1466,9 +1466,12 @@ function startUnreadPolling(){
 
 async function broadcastUnreadToPeer(payload){
   const peerId=data.lastMatch?.userId;
-  if(!peerId || !payload?.match_id || !authState.user)return;
+  const matchId=payload?.match_id||data.lastMatch?.matchId;
+  if(!peerId || !matchId || !authState.user)return;
 
-  const ch=sb.channel(`destiny-unread-${peerId}`,{config:{broadcast:{self:false}}});
+  // v3.9 : canal de notification déterministe par MATCH.
+  // Les deux membres écoutent exactement le même canal même si le chat est fermé.
+  const ch=sb.channel(`destiny-unread-match-${matchId}`,{config:{broadcast:{self:false}}});
   let finished=false;
   const cleanup=()=>{
     if(finished)return;
@@ -1487,7 +1490,7 @@ async function broadcastUnreadToPeer(payload){
               type:"broadcast",
               event:"unread-message",
               payload:{
-                match_id:payload.match_id,
+                match_id:matchId,
                 sender_id:authState.user.id,
                 recipient_id:peerId,
                 sent_at:Date.now(),
@@ -1536,7 +1539,12 @@ async function startUnreadRealtime(){
   await stopUnreadRealtime();
   await loadUnreadCount();
 
-  const channelName=`destiny-unread-${authState.user.id}`;
+  const matchId=data.lastMatch?.matchId||null;
+  // v3.9 : si un match mutuel existe, on s'abonne au canal commun du match.
+  // Cela permet au badge de s'allumer instantanément sur Accueil / Profil / ADN / Match.
+  const channelName=matchId
+    ? `destiny-unread-match-${matchId}`
+    : `destiny-unread-user-${authState.user.id}`;
 
   unreadState.channel=sb
     .channel(channelName,{config:{broadcast:{self:false}}})
@@ -2028,7 +2036,7 @@ async function sendChatMessage(){
     };
     appendLiveMessage(livePayload);
 
-    // v3.8 : avertit aussi le destinataire lorsqu'il n'a PAS la conversation ouverte.
+    // v3.9 : avertit aussi le destinataire lorsqu'il n'a PAS la conversation ouverte.
     // Son badge "Match / Conversation" s'allume immédiatement sur Accueil, Profil, etc.
     broadcastUnreadToPeer(livePayload).catch(()=>{});
 
