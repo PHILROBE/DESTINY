@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#07080c">
-<title>DESTINY v2.7 — MATCH V3</title>
+<title>DESTINY v2.8 — MATCH REVEAL</title>
 <link rel="manifest" href="./manifest.webmanifest">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -56,6 +56,24 @@ textarea,input,select{width:100%;background:#0e1016;border:1px solid var(--line)
 .v2-stat{border:1px solid var(--line);background:#0e1016;border-radius:16px;padding:14px}
 .v2-stat b{display:block;font-size:23px;font-weight:300;margin-top:5px}
 .hidden{display:none!important}
+
+
+/* ============================================================
+   DESTINY v2.8 — PROFIL RÉVÉLÉ APRÈS MATCH MUTUEL
+   ============================================================ */
+.reveal-card{margin-top:14px;border:1px solid rgba(208,176,113,.42);background:linear-gradient(145deg,rgba(208,176,113,.10),rgba(145,129,255,.08))}
+.reveal-head{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+.reveal-avatar{width:84px;height:84px;border-radius:50%;overflow:hidden;display:grid;place-items:center;flex:0 0 auto;background:linear-gradient(145deg,rgba(208,176,113,.22),rgba(145,129,255,.22));border:1px solid #3a3d49;font-size:30px}
+.reveal-avatar img{width:100%;height:100%;object-fit:cover;display:block}
+.reveal-name{font-size:29px;font-weight:300;margin:3px 0}
+.reveal-meta{color:var(--muted);font-size:13px;line-height:1.55}
+.reveal-score{display:inline-flex;align-items:center;gap:7px;margin-top:8px;padding:7px 11px;border-radius:99px;background:rgba(208,176,113,.12);color:var(--gold);font-size:12px;font-weight:700}
+.reveal-bio{margin-top:14px;padding:15px;border-radius:15px;background:#0e1016;border:1px solid var(--line);line-height:1.6;color:#ddd}
+.reveal-cats{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:14px}
+.reveal-cat{padding:12px;border-radius:14px;background:#0e1016;border:1px solid var(--line)}
+.reveal-cat span{display:block;color:var(--muted);font-size:10px;letter-spacing:1.2px;text-transform:uppercase}
+.reveal-cat b{display:block;font-size:21px;font-weight:300;margin-top:4px}
+.reveal-verified{display:inline-flex;align-items:center;gap:6px;margin-top:8px;padding:6px 9px;border-radius:99px;border:1px solid rgba(120,213,154,.35);background:rgba(120,213,154,.08);color:#9be6b5;font-size:10px}
 
 </style>
 </head>
@@ -198,6 +216,33 @@ textarea,input,select{width:100%;background:#0e1016;border:1px solid var(--line)
     <div class="card" id="matchStrengths"></div>
     <button class="btn" onclick="findMatch()">RECALCULER LE MATCH</button>
     <button class="btn dark" style="margin-top:10px" onclick="revealMatch()">DÉCOUVRIR LE PROFIL</button>
+    <div id="revealedProfile" class="card reveal-card hidden">
+      <div class="eyebrow">PROFIL RÉVÉLÉ · MATCH MUTUEL</div>
+      <div class="reveal-head">
+        <div class="reveal-avatar">
+          <span id="revealedAvatarFallback">♡</span>
+          <img id="revealedAvatarImg" class="hidden" alt="Photo du match">
+        </div>
+        <div style="min-width:0;flex:1">
+          <div class="reveal-name" id="revealedName">—</div>
+          <div class="reveal-meta" id="revealedMeta">—</div>
+          <div id="revealedVerified" class="reveal-verified hidden">✓ DESTINY VERIFIED</div>
+          <div class="reveal-score" id="revealedScore">—% COMPATIBILITÉ</div>
+        </div>
+      </div>
+      <div class="reveal-bio" id="revealedBio">Présentation non renseignée.</div>
+      <div class="reveal-cats">
+        <div class="reveal-cat"><span>Famille</span><b id="rFamily">—</b></div>
+        <div class="reveal-cat"><span>Couple</span><b id="rCouple">—</b></div>
+        <div class="reveal-cat"><span>Lifestyle</span><b id="rLifestyle">—</b></div>
+        <div class="reveal-cat"><span>Intimité</span><b id="rIntimacy">—</b></div>
+        <div class="reveal-cat"><span>Projet</span><b id="rProject">—</b></div>
+        <div class="reveal-cat"><span>Valeurs</span><b id="rValues">—</b></div>
+      </div>
+      <div class="notice" style="margin-top:14px">
+        Les réponses détaillées ADN approfondi restent privées. Seuls le profil de rencontre et les scores de compatibilité sont révélés après consentement mutuel.
+      </div>
+    </div>
   </div>
 </div>
 
@@ -913,6 +958,7 @@ function compatibility(a,b){
  let total=0,w=0;dimensions.forEach(k=>{if(a[k]!==undefined&&b[k]!==undefined){const ww=weights[k]||1;total+=(100-Math.abs(a[k]-b[k]))*ww;w+=ww}});return w?Math.round(total/w):0;
 }
 async function findMatch(){
+ const revealed=document.getElementById("revealedProfile");if(revealed)revealed.classList.add("hidden");
  if(!authState.user){alert("Connecte-toi d’abord à ton compte DESTINY.");return}
  const p=data.profile||{};
  if(!p.birthDate||!p.city){alert("Complète d’abord ton profil de rencontre.");go("profile");return}
@@ -1021,9 +1067,106 @@ function renderMatch(m){
  else if(m.dims){const d=data.dimensions,b=m.dims;const values=groupScore(d,b,["Identité","Empathie","Équilibre","Vision"]), rel=groupScore(d,b,["Relations","Intimité","Autonomie","Empathie"]), com=groupScore(d,b,["Communication","Émotions","Empathie"]), proj=groupScore(d,b,["Vision","Projection","Ambition","Équilibre"]);document.getElementById("mValues").textContent=values+"%";document.getElementById("mRelation").textContent=rel+"%";document.getElementById("mCommunication").textContent=com+"%";document.getElementById("mProjection").textContent=proj+"%";const strengths=dimensions.map(k=>[k,100-Math.abs(d[k]-b[k])]).sort((x,y)=>y[1]-x[1]).slice(0,5);document.getElementById("matchStrengths").innerHTML=strengths.map(x=>`<span class="tag">${x[0]} · ${Math.round(x[1])}%</span>`).join("");document.getElementById("matchWhy").textContent=`Vos profils présentent une proximité forte sur ${strengths.slice(0,3).map(x=>x[0]).join(", ")}. DESTINY recherche un équilibre, pas une copie conforme.`}else{document.getElementById("mValues").textContent=m.score+"%";document.getElementById("mRelation").textContent=m.score+"%";document.getElementById("mCommunication").textContent=m.score+"%";document.getElementById("mProjection").textContent=m.score+"%";document.getElementById("matchStrengths").innerHTML='<span class="tag">DNA comparé côté serveur</span><span class="tag">Réponses privées</span><span class="tag">RLS actif</span>';document.getElementById("matchWhy").textContent="Le score a été calculé côté serveur sur les 20 dimensions. Les réponses DNA détaillées de l’autre membre ne sont pas envoyées à ton téléphone."}
  const state=document.getElementById("requestState"),btn=document.getElementById("requestBtn");if(state&&btn){if(m.mutual){state.textContent="Intérêt réciproque confirmé. Vous pouvez maintenant vous découvrir.";btn.textContent="MATCH MUTUEL ✓";btn.disabled=true}else if(m.interest){state.textContent="Signal envoyé. Dans la version connectée, DESTINY attendra la réponse de l’autre personne.";btn.textContent="SIGNAL ENVOYÉ ✓";btn.disabled=true}else{state.textContent="Tu peux envoyer un signal discret. Aucune conversation ne s’ouvre sans intérêt réciproque.";btn.textContent="ENVOYER UN SIGNAL ♡";btn.disabled=false}}
 }
+async function loadRevealedAvatar(userId){
+  const img=document.getElementById("revealedAvatarImg");
+  const fallback=document.getElementById("revealedAvatarFallback");
+  if(!img||!fallback||!userId)return;
+  img.classList.add("hidden");
+  fallback.classList.remove("hidden");
+  img.removeAttribute("src");
+  try{
+    const {data:res,error}=await sb.storage.from(AVATAR_BUCKET).createSignedUrl(`${userId}/avatar`,3600);
+    if(error)throw error;
+    if(res?.signedUrl){
+      img.src=res.signedUrl;
+      img.classList.remove("hidden");
+      fallback.classList.add("hidden");
+    }
+  }catch(e){
+    console.warn("Photo du match non accessible",e);
+  }
+}
+
 async function revealMatch(){
- if(!data.lastMatch)return;if(!data.lastMatch.mutual){alert("DESTINY protège la révélation complète : elle s’ouvre uniquement après intérêt réciproque.");return}
- if(data.lastMatch.cloud&&data.lastMatch.matchId){const {data:rows,error}=await sb.rpc("get_destiny_match_profile",{p_match_id:data.lastMatch.matchId});if(error){alert(error.message);return}const p=rows&&rows[0];if(p){data.lastMatch.name=p.first_name||"Match Destiny";data.lastMatch.city=p.city||data.lastMatch.city;data.lastMatch.bio=p.bio||"";save();document.getElementById("matchName").textContent=data.lastMatch.name;alert((p.first_name||"Ton match")+(p.bio?"\n\n"+p.bio:""))}}else document.getElementById("matchName").textContent=data.lastMatch.name+" · "+data.lastMatch.archetype;
+  if(!data.lastMatch)return;
+
+  if(!data.lastMatch.mutual){
+    alert("DESTINY protège la révélation complète : elle s’ouvre uniquement après intérêt réciproque.");
+    return;
+  }
+
+  if(!data.lastMatch.cloud || !data.lastMatch.matchId){
+    alert("Le profil complet n’est disponible qu’après un MATCH MUTUEL enregistré dans DESTINY Cloud.");
+    return;
+  }
+
+  try{
+    const {data:rows,error}=await sb.rpc("get_destiny_match_profile",{
+      p_match_id:data.lastMatch.matchId
+    });
+
+    if(error)throw error;
+
+    const p=rows&&rows[0];
+    if(!p){
+      alert("Profil du match introuvable.");
+      return;
+    }
+
+    data.lastMatch.name=p.first_name||data.lastMatch.name||"Match Destiny";
+    data.lastMatch.city=p.city||data.lastMatch.city||"";
+    data.lastMatch.bio=p.bio||"";
+    save();
+
+    const age =
+      Number(p.age) ||
+      (p.birth_date ? ageFromBirthDate(p.birth_date) : data.lastMatch.age);
+
+    document.getElementById("revealedName").textContent=data.lastMatch.name;
+
+    const meta=[];
+    if(age)meta.push(`${age} ans`);
+    if(data.lastMatch.city)meta.push(data.lastMatch.city);
+    if(p.country)meta.push(p.country);
+    document.getElementById("revealedMeta").textContent=meta.join(" · ")||"Profil DESTINY";
+
+    document.getElementById("revealedBio").textContent=
+      p.bio?.trim() || "Cette personne n’a pas encore ajouté de présentation.";
+
+    document.getElementById("revealedScore").textContent=
+      `${Number(data.lastMatch.score).toFixed(1)}% COMPATIBILITÉ`;
+
+    const verified =
+      p.identity_status==="verified" ||
+      p.verified===true ||
+      p.is_verified===true;
+    document.getElementById("revealedVerified").classList.toggle("hidden",!verified);
+
+    const s=data.lastMatch.v2Scores||{};
+    document.getElementById("rFamily").textContent=(s.family??0)+"%";
+    document.getElementById("rCouple").textContent=(s.couple??0)+"%";
+    document.getElementById("rLifestyle").textContent=(s.lifestyle??0)+"%";
+    document.getElementById("rIntimacy").textContent=(s.intimacy??0)+"%";
+    document.getElementById("rProject").textContent=(s.project??0)+"%";
+    document.getElementById("rValues").textContent=(s.values??0)+"%";
+
+    document.getElementById("matchName").textContent=
+      data.lastMatch.name+" · Deep Matching";
+
+    const revealed=document.getElementById("revealedProfile");
+    revealed.classList.remove("hidden");
+
+    loadRevealedAvatar(data.lastMatch.userId).catch(()=>{});
+
+    revealed.scrollIntoView({
+      behavior:"smooth",
+      block:"start"
+    });
+
+  }catch(e){
+    console.error("Révélation du profil",e);
+    alert("Impossible de révéler le profil : "+(e.message||e));
+  }
 }
 async function sendInterest(){
  if(!data.lastMatch)return;if(!data.lastMatch.cloud){alert("Ce profil provient d’une ancienne démonstration locale. Relance le matching cloud.");return}
