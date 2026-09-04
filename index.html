@@ -7,7 +7,7 @@
 <title>DESTINY v3.6 — TYPING INDICATOR</title>
 <link rel="manifest" href="./manifest.webmanifest">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<!-- DESTINY build v3.9-typing-bottom -->
+<!-- DESTINY build v4.8-realtime-dual-channel -->
 <style>
 :root{--bg:#07080c;--panel:#11131a;--gold:#d0b071;--violet:#9181ff;--text:#f6f3ec;--muted:#999ba6;--line:#292c37}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(600px 300px at 50% -80px,#282033 0,#07080c 65%);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif}
@@ -1594,7 +1594,9 @@ async function broadcastUnreadToPeer(payload){
                 sender_id:authState.user.id,
                 recipient_id:peerId,
                 sent_at:Date.now(),
-                client_nonce:payload.client_nonce||null
+                client_nonce:payload.client_nonce||null,
+                content:payload.content||null,
+                created_at:payload.created_at||new Date().toISOString()
               }
             });
             resolve();
@@ -1705,17 +1707,36 @@ async function startUnreadRealtime(){
         }
 
         if(chatIsOpen){
+          // v4.8 : le canal de notification du match sert aussi de second chemin
+          // temps réel. C'est ce canal qui fonctionne déjà de façon fiable pour
+          // les badges entre Chrome / Samsung Internet. Si le chat est ouvert,
+          // on affiche donc immédiatement le contenu reçu, sans attendre SQL.
+          if(payload.content){
+            setPeerTyping(false);
+            appendLiveMessage(payload);
+          }
           if(payload.client_nonce){
             setTimeout(()=>sendUnreadReceipt("receipt-read",payload.client_nonce).catch(()=>{}),30);
             unreadState.pendingReceipts.delete(payload.client_nonce);
           }
           setTimeout(()=>markCurrentChatRead().catch(()=>{}),60);
+          scheduleRealtimeRefresh(220);
         }else{
           // Affichage immédiat : le badge ne dépend plus de postgres_changes.
           bumpUnreadInstantly();
           // Réconciliation avec Supabase quelques instants plus tard.
           scheduleUnreadRefresh(350);
         }
+      }
+    )
+    .on(
+      "broadcast",
+      {event:"typing-fallback"},
+      ({payload})=>{
+        if(!payload || payload.match_id!==data.lastMatch?.matchId)return;
+        if(payload.sender_id===authState.user?.id)return;
+        const chatView=document.getElementById("chat");
+        if(chatView?.classList.contains("active"))setPeerTyping(!!payload.typing);
       }
     )
     .on(
@@ -1812,21 +1833,24 @@ function setPeerTyping(active){
 }
 
 async function broadcastTyping(active){
-  const channel=chatState.channel;
-  if(!channel || !authState.user || !chatState.matchId)return;
-  try{
-    await channel.send({
-      type:"broadcast",
-      event:"typing",
-      payload:{
-        match_id:chatState.matchId,
-        sender_id:authState.user.id,
-        typing:!!active
-      }
-    });
-  }catch(e){
-    console.warn("Typing broadcast",e);
+  if(!authState.user || !chatState.matchId)return;
+  const payload={
+    match_id:chatState.matchId,
+    sender_id:authState.user.id,
+    typing:!!active
+  };
+  const sends=[];
+  if(chatState.channel){
+    sends.push(chatState.channel.send({type:"broadcast",event:"typing",payload}));
   }
+  // v4.8 : second chemin sur le canal global du match, déjà utilisé avec
+  // succès par les badges. Ainsi l'indicateur de saisie ne dépend plus d'un
+  // seul abonnement Realtime.
+  if(unreadState.channel && data.lastMatch?.matchId===chatState.matchId){
+    sends.push(unreadState.channel.send({type:"broadcast",event:"typing-fallback",payload}));
+  }
+  if(!sends.length)return;
+  try{await Promise.allSettled(sends)}catch(e){console.warn("Typing broadcast",e)}
 }
 
 function chatInputChanged(){
