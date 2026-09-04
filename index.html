@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#07080c">
-<title>DESTINY v3.2 — PERSISTENT MATCH PROFILE</title>
+<title>DESTINY v3.6 — TYPING INDICATOR</title>
 <link rel="manifest" href="./manifest.webmanifest">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<!-- DESTINY build v3.5-live-chat-fix -->
+<!-- DESTINY build v3.6-typing-indicator -->
 <style>
 :root{--bg:#07080c;--panel:#11131a;--gold:#d0b071;--violet:#9181ff;--text:#f6f3ec;--muted:#999ba6;--line:#292c37}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(600px 300px at 50% -80px,#282033 0,#07080c 65%);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif}
@@ -86,8 +86,17 @@ textarea,input,select{width:100%;background:#0e1016;border:1px solid var(--line)
 .chat-avatar img{width:100%;height:100%;object-fit:cover;display:block}
 .chat-peer{font-size:20px;font-weight:300;margin:0}
 .chat-status{font-size:11px;color:#9be6b5;margin-top:3px}
-.chat-typing{font-size:11px;color:var(--gold);margin-top:5px;min-height:15px;animation:chatTypingPulse 1.15s ease-in-out infinite}
-@keyframes chatTypingPulse{0%,100%{opacity:.45}50%{opacity:1}}
+.chat-typing{font-size:11px;color:var(--gold);margin-top:5px;min-height:15px}
+.chat-typing-row{display:flex;align-items:flex-end;gap:8px;padding:2px 2px 10px;min-height:48px}
+.chat-typing-mini-avatar{width:32px;height:32px;border-radius:50%;overflow:hidden;display:grid;place-items:center;flex:0 0 auto;background:linear-gradient(145deg,rgba(208,176,113,.22),rgba(145,129,255,.22));border:1px solid #3a3d49;color:var(--gold);font-size:13px}
+.chat-typing-mini-avatar img{width:100%;height:100%;object-fit:cover;display:block}
+.chat-typing-content{display:flex;flex-direction:column;gap:4px;min-width:0}
+.chat-typing-bubble{display:inline-flex;align-items:center;gap:5px;width:max-content;min-width:58px;padding:10px 12px;border-radius:16px 16px 16px 6px;background:#171923;border:1px solid var(--line)}
+.chat-typing-dot{width:7px;height:7px;border-radius:50%;background:var(--gold);opacity:.35;animation:destinyTypingDot 1.05s infinite ease-in-out}
+.chat-typing-dot:nth-child(2){animation-delay:.16s}
+.chat-typing-dot:nth-child(3){animation-delay:.32s}
+.chat-typing-label{font-size:10px;color:var(--muted);padding-left:2px}
+@keyframes destinyTypingDot{0%,60%,100%{transform:translateY(0);opacity:.28}30%{transform:translateY(-4px);opacity:1}}
 .chat-messages{display:flex;flex-direction:column;gap:9px;min-height:360px;max-height:58vh;overflow-y:auto;padding:8px 2px 16px;scroll-behavior:smooth}
 .chat-empty{margin:auto;text-align:center;color:var(--muted);font-size:13px;line-height:1.6;padding:40px 18px}
 .chat-row{display:flex}
@@ -375,6 +384,21 @@ textarea,input,select{width:100%;background:#0e1016;border:1px solid var(--line)
       <div class="chat-empty">Chargement de la conversation…</div>
     </div>
 
+    <div id="chatTypingRow" class="chat-typing-row hidden" aria-live="polite">
+      <div class="chat-typing-mini-avatar">
+        <span id="chatTypingAvatarFallback">♡</span>
+        <img id="chatTypingAvatarImg" class="hidden" alt="Photo du match">
+      </div>
+      <div class="chat-typing-content">
+        <div class="chat-typing-bubble" aria-label="Ton match est en train d'écrire">
+          <span class="chat-typing-dot"></span>
+          <span class="chat-typing-dot"></span>
+          <span class="chat-typing-dot"></span>
+        </div>
+        <div id="chatTypingLabel" class="chat-typing-label">Ton match est en train d’écrire…</div>
+      </div>
+    </div>
+
     <div class="chat-composer">
       <div class="chat-compose-row">
         <textarea id="chatInput" rows="2" maxlength="2000" placeholder="Écris un message…" onkeydown="chatKeyDown(event)" oninput="chatInputChanged()"></textarea>
@@ -445,7 +469,7 @@ textarea,input,select{width:100%;background:#0e1016;border:1px solid var(--line)
     <button class="btn dark" style="margin-top:14px" onclick="logout()">SE DÉCONNECTER</button>
     <button class="btn dark danger" style="margin-top:10px" onclick="clearLocalData()">EFFACER LES DONNÉES LOCALES</button>
   </div>
-  <div class="notice">Version v3.4 REALTIME CHAT FIX+ : profil de match révélé conservé, accès direct à la conversation, détails de compatibilité repliables, messagerie privée temps réel renforcée, indicateur de saisie et compteur de messages non lus synchronisés dans Supabase. Les réponses sensibles restent privées.</div>
+  <div class="notice">Version v3.6 TYPING INDICATOR : profil de match révélé conservé, accès direct à la conversation, détails de compatibilité repliables, messagerie privée temps réel renforcée, indicateur de saisie et compteur de messages non lus synchronisés dans Supabase. Les réponses sensibles restent privées.</div>
   <button class="btn dark" style="margin-top:12px" onclick="resetApp()">Recommencer le DNA</button>
 </div>
 
@@ -1491,8 +1515,9 @@ let chatState={
 };
 
 function setPeerTyping(active){
-  const el=document.getElementById("chatTyping");
-  if(!el)return;
+  const headerEl=document.getElementById("chatTyping");
+  const row=document.getElementById("chatTypingRow");
+  const label=document.getElementById("chatTypingLabel");
 
   if(chatState.peerTypingTimer){
     clearTimeout(chatState.peerTypingTimer);
@@ -1500,11 +1525,16 @@ function setPeerTyping(active){
   }
 
   if(active){
-    el.textContent=`${chatState.peerName||"Ton match"} écrit…`;
-    el.classList.remove("hidden");
-    chatState.peerTypingTimer=setTimeout(()=>setPeerTyping(false),1800);
+    const name=chatState.peerName||"Ton match";
+    if(headerEl)headerEl.classList.add("hidden");
+    if(label)label.textContent=`${name} est en train d’écrire…`;
+    if(row)row.classList.remove("hidden");
+    const box=document.getElementById("chatMessages");
+    if(box)requestAnimationFrame(()=>{box.scrollTop=box.scrollHeight});
+    chatState.peerTypingTimer=setTimeout(()=>setPeerTyping(false),2200);
   }else{
-    el.classList.add("hidden");
+    if(headerEl)headerEl.classList.add("hidden");
+    if(row)row.classList.add("hidden");
   }
 }
 
@@ -1724,17 +1754,17 @@ function escapeHtml(s){
 async function loadChatAvatar(userId){
   const img=document.getElementById("chatAvatarImg");
   const fallback=document.getElementById("chatAvatarFallback");
+  const typingImg=document.getElementById("chatTypingAvatarImg");
+  const typingFallback=document.getElementById("chatTypingAvatarFallback");
   if(!img||!fallback||!userId)return;
-  img.classList.add("hidden");
-  fallback.classList.remove("hidden");
-  img.removeAttribute("src");
+  [img,typingImg].filter(Boolean).forEach(el=>{el.classList.add("hidden");el.removeAttribute("src")});
+  [fallback,typingFallback].filter(Boolean).forEach(el=>el.classList.remove("hidden"));
   try{
     const {data:res,error}=await sb.storage.from(AVATAR_BUCKET).createSignedUrl(`${userId}/avatar`,3600);
     if(error)throw error;
     if(res?.signedUrl){
-      img.src=res.signedUrl;
-      img.classList.remove("hidden");
-      fallback.classList.add("hidden");
+      [img,typingImg].filter(Boolean).forEach(el=>{el.src=res.signedUrl;el.classList.remove("hidden")});
+      [fallback,typingFallback].filter(Boolean).forEach(el=>el.classList.add("hidden"));
     }
   }catch(e){
     console.warn("Photo chat non accessible",e);
