@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#07080c">
-<title>DESTINY v2.5 — DEEP MATCHING</title>
+<title>DESTINY v2.6 — DEEP MATCHING</title>
 <link rel="manifest" href="./manifest.webmanifest">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -111,14 +111,6 @@ textarea,input,select{width:100%;background:#0e1016;border:1px solid var(--line)
     <div class="card mini"><div class="eyebrow">PROGRESSION</div><strong id="completion">0%</strong><div class="muted">Questionnaire</div></div>
   </div>
 
-  <div class="section-title">DESTINY MATCH</div>
-  <div class="card dna-card">
-    <div class="eyebrow">COMPATIBILITÉ</div>
-    <h2 style="font-weight:300">Une personne peut correspondre à ton ADN.</h2>
-    <p class="muted">Lance le moteur MATCH pour comparer tes 20 dimensions avec des profils compatibles.</p>
-    <button class="btn" onclick="go('match')">TROUVER MON DESTINY</button>
-  </div>
-
   <div class="section-title">ADN APPROFONDI</div>
   <div class="card dna-card v2-banner">
     <div class="v2-badge">🧬 DEEP MATCHING · 18+</div>
@@ -127,6 +119,15 @@ textarea,input,select{width:100%;background:#0e1016;border:1px solid var(--line)
     <div class="progress"><i id="v2HomeProgress" style="width:0%"></i></div>
     <p class="muted" id="v2HomeStatus" style="margin-top:10px">Questionnaire V2 à commencer.</p>
     <button class="btn" onclick="startV2Questionnaire()">COMMENCER ADN approfondi</button>
+  </div>
+
+  
+<div class="section-title">DESTINY MATCH</div>
+  <div class="card dna-card">
+    <div class="eyebrow">COMPATIBILITÉ</div>
+    <h2 style="font-weight:300">Une personne peut correspondre à ton ADN.</h2>
+    <p class="muted">Lance le moteur MATCH pour comparer tes 20 dimensions avec des profils compatibles.</p>
+    <button class="btn" onclick="go('match')">TROUVER MON DESTINY</button>
   </div>
 
   <div class="section-title">PROFIL DE RENCONTRE</div>
