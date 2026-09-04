@@ -108,9 +108,9 @@ textarea,input,select{width:100%;background:#0e1016;border:1px solid var(--line)
 .chat-time{font-size:10px;opacity:.7;margin-top:5px}
 .chat-meta{display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-top:5px;min-height:14px}
 .chat-meta .chat-time{margin-top:0}
-.chat-receipt{font-size:12px;font-weight:900;letter-spacing:-3px;padding-right:3px;opacity:.72;line-height:1;color:#2b2b2b}
-.chat-receipt.delivered{opacity:.9}
-.chat-receipt.read{color:var(--gold);opacity:1;text-shadow:0 0 8px rgba(208,176,113,.28)}
+.chat-receipt{font-size:12px;font-weight:900;letter-spacing:-3px;padding:1px 4px 1px 2px;opacity:.72;line-height:1;color:#2b2b2b;border-radius:7px}
+.chat-receipt.delivered{opacity:.95;color:#3a2d17}
+.chat-receipt.read{color:#ffe08a;background:rgba(7,8,12,.72);opacity:1;text-shadow:0 0 7px rgba(255,224,138,.45)}
 .chat-composer{position:sticky;bottom:78px;background:rgba(7,8,12,.96);padding-top:10px}
 .chat-compose-row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end}
 .chat-compose-row textarea{resize:none;min-height:50px;max-height:130px}
@@ -179,6 +179,10 @@ textarea,input,select{width:100%;background:#0e1016;border:1px solid var(--line)
 .compat-details{margin-top:14px}
 .compat-details.hidden{display:none!important}
 
+
+.chat-tech-status{font-size:9px;opacity:.55;margin-top:2px}
+#chatPresenceStatus{font-size:11px;margin-top:3px;color:var(--muted)}
+#chatPresenceStatus.online{color:var(--gold);font-weight:700}
 </style>
 </head>
 <body>
@@ -378,7 +382,8 @@ textarea,input,select{width:100%;background:#0e1016;border:1px solid var(--line)
     </div>
     <div style="min-width:0;flex:1">
       <h2 class="chat-peer" id="chatPeerName">Ton match</h2>
-      <div class="chat-status" id="chatRealtimeStatus">● MATCH MUTUEL · connexion temps réel…</div>
+      <div class="chat-status" id="chatPresenceStatus">◌ Statut indisponible</div>
+      <div class="chat-status chat-tech-status" id="chatRealtimeStatus">● MATCH MUTUEL · connexion temps réel…</div>
       <div id="chatTyping" class="chat-typing hidden">Ton match écrit…</div>
     </div>
     <button class="iconbtn" type="button" onclick="refreshChat()" title="Actualiser">↻</button>
@@ -1388,7 +1393,10 @@ let unreadState={
   refreshTimer:null,
   pollTimer:null,
   pollSeq:0,
-  pendingReceipts:new Set()
+  pendingReceipts:new Set(),
+  peerOnline:false,
+  peerLastSeenAt:null,
+  presenceTimer:null
 };
 
 function renderUnreadBadge(){
@@ -1568,6 +1576,43 @@ async function stopUnreadRealtime(){
   }
 }
 
+function formatPresenceAgo(ts){
+  if(!ts)return "Hors ligne";
+  const sec=Math.max(0,Math.floor((Date.now()-ts)/1000));
+  if(sec<45)return "Vu à l’instant";
+  const min=Math.floor(sec/60);
+  if(min<60)return `Vu il y a ${min} min`;
+  const h=Math.floor(min/60);
+  if(h<24)return `Vu il y a ${h} h`;
+  const d=Math.floor(h/24);
+  return `Vu il y a ${d} j`;
+}
+
+function renderPeerPresence(){
+  const el=document.getElementById("chatPresenceStatus");
+  if(!el)return;
+  if(unreadState.peerOnline){
+    el.textContent="● En ligne";
+    el.classList.add("online");
+  }else{
+    el.textContent=formatPresenceAgo(unreadState.peerLastSeenAt);
+    el.classList.remove("online");
+  }
+}
+
+function refreshPresenceFromChannel(){
+  const ch=unreadState.channel;
+  const peerId=data.lastMatch?.userId;
+  if(!ch||!peerId)return;
+  const state=ch.presenceState?.()||{};
+  const online=Object.entries(state).some(([key,entries])=>
+    key===peerId || (Array.isArray(entries)&&entries.some(x=>x?.user_id===peerId))
+  );
+  if(unreadState.peerOnline && !online)unreadState.peerLastSeenAt=Date.now();
+  unreadState.peerOnline=online;
+  renderPeerPresence();
+}
+
 async function startUnreadRealtime(){
   if(!authState.user)return;
 
@@ -1582,7 +1627,10 @@ async function startUnreadRealtime(){
     : `destiny-unread-user-${authState.user.id}`;
 
   unreadState.channel=sb
-    .channel(channelName,{config:{broadcast:{self:false}}})
+    .channel(channelName,{config:{broadcast:{self:false},presence:{key:authState.user.id}}})
+    .on("presence",{event:"sync"},()=>refreshPresenceFromChannel())
+    .on("presence",{event:"join"},()=>refreshPresenceFromChannel())
+    .on("presence",{event:"leave"},()=>refreshPresenceFromChannel())
     .on(
       "broadcast",
       {event:"unread-message"},
@@ -1653,8 +1701,12 @@ async function startUnreadRealtime(){
         }
       }
     )
-    .subscribe(status=>{
-      if(status==="SUBSCRIBED")startUnreadPolling();
+    .subscribe(async status=>{
+      if(status==="SUBSCRIBED"){
+        startUnreadPolling();
+        try{await unreadState.channel.track({user_id:authState.user.id,online_at:new Date().toISOString()});}catch(e){console.warn("Presence track",e)}
+        setTimeout(refreshPresenceFromChannel,80);
+      }
     });
 }
 
@@ -1673,7 +1725,8 @@ let chatState={
   typingTimer:null,
   peerTypingTimer:null,
   lastTypingSentAt:0,
-  liveSeen:new Set()
+  liveSeen:new Set(),
+  receiptRecords:new Map()
 };
 
 function setPeerTyping(active){
@@ -1945,11 +1998,13 @@ async function openChat(){
   chatState.peerName=m.name||"Ton match";
   chatState.lastSignature="";
   chatState.liveSeen.clear();
+  if(!chatState.receiptRecords)chatState.receiptRecords=new Map();
 
   const peer=document.getElementById("chatPeerName");
   if(peer)peer.textContent=chatState.peerName;
 
   loadChatAvatar(chatState.peerId).catch(()=>{});
+  renderPeerPresence();
   go("chat");
   markCurrentChatRead().catch(()=>{});
 }
@@ -1992,6 +2047,7 @@ async function refreshChat(silent=false){
 
 function receiptRank(state){return state==="read"?3:state==="delivered"?2:1}
 function rememberReceipt(msg,state="sent"){
+  if(!chatState.receiptRecords)chatState.receiptRecords=new Map();
   if(!msg?.client_nonce)return;
   const old=chatState.receiptRecords.get(msg.client_nonce)||{};
   if(receiptRank(old.state||"sent")>receiptRank(state))state=old.state;
@@ -2017,6 +2073,7 @@ function updateMessageReceipt(clientNonce,state){
   });
 }
 function receiptForMessage(msg){
+  if(!chatState.receiptRecords)chatState.receiptRecords=new Map();
   if(msg.sender_id!==authState.user?.id)return null;
   if(msg.read_at || msg.is_read===true || msg.read===true)return {state:"read",key:msg.client_nonce||msg.id||"db-read"};
   if(msg.delivered_at || msg.is_delivered===true)return {state:"delivered",key:msg.client_nonce||msg.id||"db-delivered"};
@@ -2191,6 +2248,12 @@ function chatKeyDown(event){
     sendChatMessage();
   }
 }
+
+
+setInterval(()=>{
+  const chatView=document.getElementById("chat");
+  if(chatView?.classList.contains("active"))renderPeerPresence();
+},30000);
 
 // Resynchronisation immédiate quand le navigateur revient au premier plan.
 window.addEventListener("focus",()=>{
