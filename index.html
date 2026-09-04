@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#07080c">
-<title>DESTINY v2.6 — DEEP MATCHING</title>
+<title>DESTINY v2.7 — MATCH V3</title>
 <link rel="manifest" href="./manifest.webmanifest">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -261,7 +261,7 @@ textarea,input,select{width:100%;background:#0e1016;border:1px solid var(--line)
     <button class="btn dark" style="margin-top:14px" onclick="logout()">SE DÉCONNECTER</button>
     <button class="btn dark danger" style="margin-top:10px" onclick="clearLocalData()">EFFACER LES DONNÉES LOCALES</button>
   </div>
-  <div class="notice">Version v2.0 DEEP MATCHING : compte, profil, photo Cloud, DNA psychologique et ADN approfondi synchronisés dans Supabase. Les réponses sensibles restent privées.</div>
+  <div class="notice">Version v2.7 MATCH V3 : compte, profil, photo Cloud, DNA psychologique et ADN approfondi synchronisés dans Supabase. Les réponses sensibles restent privées.</div>
   <button class="btn dark" style="margin-top:12px" onclick="resetApp()">Recommencer le DNA</button>
 </div>
 
@@ -915,43 +915,80 @@ function compatibility(a,b){
 async function findMatch(){
  if(!authState.user){alert("Connecte-toi d’abord à ton compte DESTINY.");return}
  const p=data.profile||{};
- if((p.identityStatus||"unverified")!=="verified"){alert("DESTINY VERIFIED requis : vérifie d’abord ton identité pour accéder aux Matchs.");go("profile");return}
  if(!p.birthDate||!p.city){alert("Complète d’abord ton profil de rencontre.");go("profile");return}
  const empty=document.getElementById("matchEmpty"),btn=empty.querySelector("button"),old=btn.textContent;
- btn.disabled=true;btn.textContent="RECHERCHE ADN approfondi…";
+ btn.disabled=true;btn.textContent="RECHERCHE DE TON DESTINY…";
  try{
-   let rows=null, v2err=null;
-   const r2=await sb.rpc("find_destiny_v2_matches_private",{limit_count:5});
-   rows=r2.data; v2err=r2.error;
-   if(v2err) console.warn("V2 match",v2err);
-
-   if(rows && rows.length){
-     const m=rows[0];
-     data.lastMatch={
-       userId:m.user_id, age:m.age, city:m.city, goal:"deep-match",
-       archetype:"Profil mystère", score:m.compatibility,
-       v2Scores:{
-         family:m.family_score, couple:m.couple_score, lifestyle:m.lifestyle_score,
-         intimacy:m.intimacy_score, project:m.project_score, values:m.values_score
-       },
-       interest:false, mutual:false, cloud:true, v2:true
-     };
-     save(); renderMatch(data.lastMatch); return;
-   }
-
-   // Fallback vers le moteur DNA historique si ADN approfondi n'est pas encore disponible
-   if(!data.confidence){
-     alert("Complète ADN approfondi (ou ton ADN psychologique) avant de lancer le matching.");
-     startV2Questionnaire(); return;
-   }
-   const {data:oldRows,error}=await sb.rpc("find_destiny_matches",{limit_count:5});
-   if(error)throw error;
-   if(!oldRows||!oldRows.length){
-     alert("Aucun profil compatible complet n’est encore disponible. Pour tester ADN approfondi, complète le questionnaire sur deux comptes différents.");
+   // 1. Recherche des candidats réciproquement compatibles et DNA V2 complété.
+   const {data:candidates,error:cErr}=await sb.rpc("destiny_find_candidates",{p_user_id:authState.user.id});
+   if(cErr)throw cErr;
+   if(!candidates||!candidates.length){
+     alert("Aucun profil compatible avec un ADN approfondi complet n’est disponible pour le moment.");
      return;
    }
-   const m=oldRows[0];
-   data.lastMatch={userId:m.user_id,age:m.age,gender:m.gender,city:m.city,goal:m.intention,archetype:"Profil cloud",score:m.compatibility,dims:null,interest:false,mutual:false,cloud:true};
+
+   // 2. Calcul du score V3 pour chaque candidat, côté serveur.
+   const scored=[];
+   for(const c of candidates){
+     const {data:scoreRows,error:sErr}=await sb.rpc("destiny_dna_score_v3",{
+       p_user_a:authState.user.id,
+       p_user_b:c.candidate_id
+     });
+     if(sErr){console.warn("DESTINY score V3",c.candidate_id,sErr);continue}
+     const score=scoreRows&&scoreRows[0];
+     if(!score)continue;
+
+     // Les scores par catégorie sont facultatifs : le match principal reste disponible
+     // même si cette RPC n'est pas encore installée.
+     let categoryScores={};
+     try{
+       const {data:catRows,error:catErr}=await sb.rpc("destiny_dna_category_scores",{
+         p_user_a:authState.user.id,
+         p_user_b:c.candidate_id
+       });
+       if(!catErr&&catRows){
+         (catRows||[]).forEach(r=>{
+           const key=r.category||r.category_key||r.name;
+           const val=r.score??r.compatibility_score??r.category_score;
+           if(key!=null&&val!=null)categoryScores[key]=Number(val);
+         });
+       }
+     }catch(catE){console.warn("DESTINY category scores",catE)}
+
+     scored.push({candidate:c,score,categoryScores});
+   }
+   if(!scored.length)throw new Error("Impossible de calculer la compatibilité DNA des candidats.");
+   scored.sort((a,b)=>Number(b.score.final_score??b.score.base_score??0)-Number(a.score.final_score??a.score.base_score??0));
+   const best=scored[0],c=best.candidate,s=best.score,cats=best.categoryScores||{};
+   const finalScore=Number(s.final_score??s.base_score??0);
+   const age=ageFromBirthDate(c.birth_date);
+
+   data.lastMatch={
+     userId:c.candidate_id,
+     name:c.first_name||"Profil Destiny",
+     age:age||"—",
+     gender:c.gender||"",
+     city:c.city||"—",
+     goal:"deep-match",
+     archetype:"Deep Matching",
+     score:Math.round(finalScore*10)/10,
+     baseScore:Number(s.base_score??finalScore),
+     questionsCompared:Number(s.questions_compared||0),
+     exactMatches:Number(s.exact_matches||0),
+     closeMatches:Number(s.close_matches||0),
+     mediumMatches:Number(s.medium_matches||0),
+     lowMatches:Number(s.low_matches||0),
+     conflicts:Number(s.non_negotiable_conflicts||0),
+     v2Scores:{
+       family:cats.family,
+       couple:cats.couple,
+       lifestyle:cats.lifestyle,
+       intimacy:cats.intimacy,
+       project:cats.project,
+       values:cats.values
+     },
+     interest:false,mutual:false,cloud:true,v2:true,v3:true
+   };
    save();renderMatch(data.lastMatch);
  }catch(e){
    console.error(e);alert("Erreur MATCH : "+(e.message||e));
@@ -962,15 +999,23 @@ function renderMatch(m){
  document.getElementById("matchEmpty").classList.add("hidden");document.getElementById("matchResult").classList.remove("hidden");
  document.getElementById("matchScore").textContent=m.score+"%";
  if(m.v2 && m.v2Scores){
-   document.getElementById("mValues").textContent=(m.v2Scores.values??0)+"%";
-   document.getElementById("mRelation").textContent=(m.v2Scores.couple??0)+"%";
-   document.getElementById("mCommunication").textContent=(m.v2Scores.family??0)+"%";
-   document.getElementById("mProjection").textContent=(m.v2Scores.project??0)+"%";
-   document.getElementById("matchWhy").textContent=`ADN approfondi : Famille ${m.v2Scores.family??0}% · Couple ${m.v2Scores.couple??0}% · Lifestyle ${m.v2Scores.lifestyle??0}% · Intimité privée ${m.v2Scores.intimacy??0}% · Projet ${m.v2Scores.project??0}% · Valeurs ${m.v2Scores.values??0}%.`;
-   document.getElementById("matchStrengths").innerHTML=[
+   const fallback=m.score??0;
+   const show=v=>v==null?fallback:Math.round(Number(v)*10)/10;
+   document.getElementById("mValues").textContent=show(m.v2Scores.values)+"%";
+   document.getElementById("mRelation").textContent=show(m.v2Scores.couple)+"%";
+   document.getElementById("mCommunication").textContent=show(m.v2Scores.family)+"%";
+   document.getElementById("mProjection").textContent=show(m.v2Scores.project)+"%";
+   const available=[
      ["Famille",m.v2Scores.family],["Couple",m.v2Scores.couple],["Lifestyle",m.v2Scores.lifestyle],
      ["Intimité",m.v2Scores.intimacy],["Projet",m.v2Scores.project],["Valeurs",m.v2Scores.values]
-   ].sort((a,b)=>(b[1]||0)-(a[1]||0)).slice(0,4).map(x=>`<span class="tag">${x[0]} · ${x[1]??0}%</span>`).join("");
+   ].filter(x=>x[1]!=null);
+   if(available.length){
+     document.getElementById("matchWhy").textContent=`ADN approfondi : ${available.map(x=>`${x[0]} ${Math.round(Number(x[1])*10)/10}%`).join(" · ")}.`;
+     document.getElementById("matchStrengths").innerHTML=available.sort((a,b)=>Number(b[1])-Number(a[1])).slice(0,4).map(x=>`<span class="tag">${x[0]} · ${Math.round(Number(x[1])*10)/10}%</span>`).join("");
+   }else{
+     document.getElementById("matchWhy").textContent=m.v3?`DESTINY MATCH v3 a comparé ${m.questionsCompared||0} réponses. ${m.exactMatches||0} réponses identiques, ${m.closeMatches||0} proches et ${m.conflicts||0} conflit(s) non négociable(s). Score de base : ${m.baseScore??m.score}%.`:`Compatibilité ADN approfondi calculée côté serveur.`;
+     document.getElementById("matchStrengths").innerHTML=`<span class="tag">${m.exactMatches||0} correspondances exactes</span><span class="tag">${m.closeMatches||0} proches</span><span class="tag">${m.questionsCompared||0} questions comparées</span>`;
+   }
  }document.getElementById("matchName").textContent=m.mutual?(m.name+" · "+m.archetype):"Profil mystère";document.getElementById("matchStatus").textContent=m.mutual?"CONNEXION MUTUELLE":m.score>=92?"SIGNAL RARE":m.score>=85?"FORTE COMPATIBILITÉ":"MATCH POTENTIEL";document.getElementById("matchMeta").textContent=`${m.age} ans · ${m.city} · ${m.goal==="vie-commune"?"Construire à deux":m.goal==="relation-serieuse"?"Relation sérieuse":"Faire connaissance"}`;
  if(m.v2){ /* scores ADN approfondi déjà affichés */ }
  else if(m.dims){const d=data.dimensions,b=m.dims;const values=groupScore(d,b,["Identité","Empathie","Équilibre","Vision"]), rel=groupScore(d,b,["Relations","Intimité","Autonomie","Empathie"]), com=groupScore(d,b,["Communication","Émotions","Empathie"]), proj=groupScore(d,b,["Vision","Projection","Ambition","Équilibre"]);document.getElementById("mValues").textContent=values+"%";document.getElementById("mRelation").textContent=rel+"%";document.getElementById("mCommunication").textContent=com+"%";document.getElementById("mProjection").textContent=proj+"%";const strengths=dimensions.map(k=>[k,100-Math.abs(d[k]-b[k])]).sort((x,y)=>y[1]-x[1]).slice(0,5);document.getElementById("matchStrengths").innerHTML=strengths.map(x=>`<span class="tag">${x[0]} · ${Math.round(x[1])}%</span>`).join("");document.getElementById("matchWhy").textContent=`Vos profils présentent une proximité forte sur ${strengths.slice(0,3).map(x=>x[0]).join(", ")}. DESTINY recherche un équilibre, pas une copie conforme.`}else{document.getElementById("mValues").textContent=m.score+"%";document.getElementById("mRelation").textContent=m.score+"%";document.getElementById("mCommunication").textContent=m.score+"%";document.getElementById("mProjection").textContent=m.score+"%";document.getElementById("matchStrengths").innerHTML='<span class="tag">DNA comparé côté serveur</span><span class="tag">Réponses privées</span><span class="tag">RLS actif</span>';document.getElementById("matchWhy").textContent="Le score a été calculé côté serveur sur les 20 dimensions. Les réponses DNA détaillées de l’autre membre ne sont pas envoyées à ton téléphone."}
