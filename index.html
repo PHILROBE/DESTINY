@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#07080c">
-<title>DESTINY v2.4 — DEEP MATCHING</title>
+<title>DESTINY v2.5 — DEEP MATCHING</title>
 <link rel="manifest" href="./manifest.webmanifest">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -65,7 +65,7 @@ textarea,input,select{width:100%;background:#0e1016;border:1px solid var(--line)
 <div id="auth" class="view active center">
   <div class="auth-wrap">
     <div class="dna-orb">🧬</div><div class="logo-big">DESTINY</div>
-    <p class="sub">TON COMPTE · TON ADN · TES MATCHS</p>
+    <p class="sub">TON COMPTE · TON DNA · TES MATCHS</p>
     <div class="auth-tabs"><button id="tabLogin" class="active" onclick="authMode('login')">CONNEXION</button><button id="tabSignup" onclick="authMode('signup')">CRÉER UN COMPTE</button></div>
     <div id="signupName" class="field hidden"><label>PRÉNOM / PSEUDO</label><input id="aName" autocomplete="name" placeholder="Ton prénom"></div>
     <div id="signupBirth" class="field hidden"><label>DATE DE NAISSANCE · 18+ OBLIGATOIRE</label><input id="aBirthDate" type="date" autocomplete="bday"><div class="muted" style="margin-top:7px">DESTINY est réservé aux personnes âgées de 18 ans ou plus.</div></div>
@@ -91,7 +91,7 @@ textarea,input,select{width:100%;background:#0e1016;border:1px solid var(--line)
 
 <div id="welcome" class="view center">
   <div class="dna-orb">🧬</div><div class="logo-big">DESTINY</div>
-  <p class="sub">YOUR STORY · YOUR ADN · YOUR FUTURE</p>
+  <p class="sub">YOUR STORY · YOUR DNA · YOUR FUTURE</p>
   <div style="height:30vh"></div>
   <button class="btn" onclick="begin()">ENTRER DANS DESTINY</button>
 </div>
@@ -100,15 +100,23 @@ textarea,input,select{width:100%;background:#0e1016;border:1px solid var(--line)
   <div class="top"><div class="brand">DESTINY</div><button class="iconbtn" onclick="go('dna')">🧬</button></div>
   <div class="hero"><div class="eyebrow">TON ESPACE PERSONNEL</div><div class="hello" id="hello">Bonjour</div><div class="sub">Ton profil évolue avec toi.</div></div>
   <div class="card dna-card">
-    <div class="eyebrow">DESTINY ADN</div>
+    <div class="eyebrow">ADN</div>
     <div class="scoreline"><div class="score" id="homeScore">—</div><div class="badge" id="homeStatus">À CONSTRUIRE</div></div>
     <div class="progress"><i id="homeProgress"></i></div>
-    <p class="muted" id="homeDesc">Réponds au questionnaire ADN pour construire ton premier profil.</p>
-    <button class="btn" onclick="startQuestionnaire()" id="homeDnaBtn">COMMENCER MON ADN</button>
+    <p class="muted" id="homeDesc">Réponds au questionnaire DNA pour construire ton premier profil.</p>
+    <button class="btn" onclick="startQuestionnaire()" id="homeDnaBtn">COMMENCER MON DNA</button>
   </div>
   <div class="grid">
     <div class="card mini"><div class="eyebrow">INSIGHT</div><strong id="insightShort">—</strong><div class="muted">Signal principal</div></div>
     <div class="card mini"><div class="eyebrow">PROGRESSION</div><strong id="completion">0%</strong><div class="muted">Questionnaire</div></div>
+  </div>
+
+  <div class="section-title">DESTINY MATCH</div>
+  <div class="card dna-card">
+    <div class="eyebrow">COMPATIBILITÉ</div>
+    <h2 style="font-weight:300">Une personne peut correspondre à ton ADN.</h2>
+    <p class="muted">Lance le moteur MATCH pour comparer tes 20 dimensions avec des profils compatibles.</p>
+    <button class="btn" onclick="go('match')">TROUVER MON DESTINY</button>
   </div>
 
   <div class="section-title">ADN APPROFONDI</div>
@@ -118,16 +126,7 @@ textarea,input,select{width:100%;background:#0e1016;border:1px solid var(--line)
     <p class="muted">Famille, enfants, couple, intimité privée, mode de vie, projets et valeurs. Les incompatibilités non négociables sont détectées avant le score de match.</p>
     <div class="progress"><i id="v2HomeProgress" style="width:0%"></i></div>
     <p class="muted" id="v2HomeStatus" style="margin-top:10px">Questionnaire V2 à commencer.</p>
-    <button class="btn" onclick="startV2Questionnaire()">COMMENCER L’ADN APPROFONDI</button>
-  </div>
-
-
-  <div class="section-title">DESTINY MATCH</div>
-  <div class="card dna-card">
-    <div class="eyebrow">COMPATIBILITÉ</div>
-    <h2 style="font-weight:300">Une personne peut correspondre à ton DNA.</h2>
-    <p class="muted">Lance le moteur MATCH pour comparer tes 20 dimensions avec des profils compatibles.</p>
-    <button class="btn" onclick="go('match')">TROUVER MON DESTINY</button>
+    <button class="btn" onclick="startV2Questionnaire()">COMMENCER ADN approfondi</button>
   </div>
 
   <div class="section-title">PROFIL DE RENCONTRE</div>
@@ -142,24 +141,24 @@ textarea,input,select{width:100%;background:#0e1016;border:1px solid var(--line)
 </div>
 
 <div id="dna" class="view">
-  <div class="top"><div class="brand">TON ADN</div><button class="iconbtn" onclick="go('home')">×</button></div>
-  <div class="card dna-card" style="text-align:center"><div class="eyebrow">INDICE ADN</div><div class="score" id="dnaScore">—</div><div class="muted">Synthèse non évaluative de tes 20 dimensions, disponible après le questionnaire.</div><div class="pill" id="confidence">Questionnaire : 0%</div></div>
+  <div class="top"><div class="brand">TON DNA</div><button class="iconbtn" onclick="go('home')">×</button></div>
+  <div class="card dna-card" style="text-align:center"><div class="eyebrow">INDICE DNA</div><div class="score" id="dnaScore">—</div><div class="muted">Synthèse non évaluative de tes 20 dimensions, disponible après le questionnaire.</div><div class="pill" id="confidence">Questionnaire : 0%</div></div>
   <button class="btn" onclick="startQuestionnaire()" id="dnaStart">COMMENCER / REFAIRE MON ADN</button>
 
   <div class="card v2-banner" style="margin-top:14px">
-    <div class="v2-badge">ADN APPROFONDI · DEEP MATCHING</div>
+    <div class="v2-badge">ADN approfondi · DEEP MATCHING</div>
     <h2 style="font-weight:300">Compatibilité de vie réelle</h2>
-    <p class="muted">L’ADN psychologique reste actif. L’ADN approfondi ajoute famille, relation, intimité, lifestyle, projet de vie et valeurs.</p>
+    <p class="muted">Le DNA psychologique reste actif. ADN approfondi ajoute famille, relation, intimité, lifestyle, projet de vie et valeurs.</p>
     <div class="progress"><i id="v2DnaProgress" style="width:0%"></i></div>
     <p class="muted" id="v2DnaStatus">0% complété</p>
-    <button class="btn" onclick="startV2Questionnaire()" id="v2DnaBtn">COMMENCER L’ADN APPROFONDI</button>
+    <button class="btn" onclick="startV2Questionnaire()" id="v2DnaBtn">COMMENCER ADN approfondi</button>
   </div>
 
   <div class="section-title">TES 20 DIMENSIONS</div>
   <div class="card bars" id="bars"></div>
   <div class="section-title">SIGNATURE</div>
   <div class="card"><h2 id="signature" style="font-weight:300">Ton identité évolutive</h2><p class="muted">Une synthèse des tendances dominantes de ton profil actuel.</p><div id="tags"></div></div>
-  <div class="section-title">TENSIONS ADN</div>
+  <div class="section-title">TENSIONS DNA</div>
   <div class="card" id="tensions"><p class="muted">Les tensions apparaîtront après le questionnaire.</p></div>
 </div>
 
@@ -169,8 +168,8 @@ textarea,input,select{width:100%;background:#0e1016;border:1px solid var(--line)
   <div id="matchEmpty" class="card dna-card" style="text-align:center">
     <div class="eyebrow">DESTINY MATCH ENGINE</div>
     <div class="match-orb"><div class="match-lock">♡</div></div>
-    <h2 style="font-weight:300">Trouve la personne la plus proche de ton DNA.</h2>
-    <p class="muted">Le moteur combine ton DNA avec tes critères de rencontre : âge, intention et profils recherchés. Les comparaisons DNA sont calculées côté serveur. Les réponses détaillées des autres membres restent privées.</p>
+    <h2 style="font-weight:300">Trouve la personne la plus proche de ton ADN.</h2>
+    <p class="muted">Le moteur combine ton ADN avec tes critères de rencontre : âge, intention et profils recherchés. Les comparaisons DNA sont calculées côté serveur. Les réponses détaillées des autres membres restent privées.</p>
     <button class="btn" onclick="findMatch()">LANCER LE MATCH</button>
   </div>
   <div id="matchResult" class="hidden">
@@ -261,15 +260,15 @@ textarea,input,select{width:100%;background:#0e1016;border:1px solid var(--line)
     <button class="btn dark" style="margin-top:14px" onclick="logout()">SE DÉCONNECTER</button>
     <button class="btn dark danger" style="margin-top:10px" onclick="clearLocalData()">EFFACER LES DONNÉES LOCALES</button>
   </div>
-  <div class="notice">Version v2.0 DEEP MATCHING : compte, profil, photo Cloud, ADN psychologique et ADN approfondi synchronisés dans Supabase. Les réponses sensibles restent privées.</div>
-  <button class="btn dark" style="margin-top:12px" onclick="resetApp()">Recommencer l’ADN</button>
+  <div class="notice">Version v2.0 DEEP MATCHING : compte, profil, photo Cloud, DNA psychologique et ADN approfondi synchronisés dans Supabase. Les réponses sensibles restent privées.</div>
+  <button class="btn dark" style="margin-top:12px" onclick="resetApp()">Recommencer le DNA</button>
 </div>
 
 
 <div id="questionnaireV2" class="view">
   <div class="top">
     <div>
-      <div class="brand">DNA V2</div>
+      <div class="brand">ADN approfondi</div>
       <div class="eyebrow">DEEP MATCHING</div>
     </div>
     <button class="iconbtn" onclick="go('dna')">×</button>
@@ -305,13 +304,13 @@ textarea,input,select{width:100%;background:#0e1016;border:1px solid var(--line)
 </div>
 
 <div id="questionnaire" class="view">
-  <div class="top"><div class="brand">DESTINY ADN</div><button class="iconbtn" onclick="go('dna')">×</button></div>
+  <div class="top"><div class="brand">ADN</div><button class="iconbtn" onclick="go('dna')">×</button></div>
   <div class="question"><div class="qnum" id="qnum"></div><div class="progress"><i id="qbar"></i></div><div class="qtext" id="qtext"></div><div class="muted">1 = Pas du tout · 5 = Tout à fait</div><div class="answers" style="margin-top:24px"><button onclick="ans(1)">1</button><button onclick="ans(2)">2</button><button onclick="ans(3)">3</button><button onclick="ans(4)">4</button><button onclick="ans(5)">5</button></div></div>
 </div>
 
 <div class="bottom">
 <button id="nHome" onclick="go('home')">⌂<br>Accueil</button>
-<button id="nDna" onclick="go('dna')">◈<br>DNA</button>
+<button id="nDna" onclick="go('dna')">◈<br>ADN</button>
 <button id="nMatch" onclick="go('match')">♡<br>Match</button>
 <button id="nAsk" onclick="go('ask')">✦<br>Ask</button>
 <button id="nProfile" onclick="go('profile')">◯<br>Profil</button>
@@ -568,11 +567,11 @@ function render(){
  document.getElementById("homeScore").textContent=conf?score:"—";
  document.getElementById("homeProgress").style.width=progress+"%";
  document.getElementById("homeStatus").textContent=conf?"PROFIL ACTIF":progress?`${progress}%`:"À CONSTRUIRE";
- document.getElementById("homeDesc").textContent=conf?"Ton profil évolutif est calculé à partir de 20 dimensions.":progress?`Questionnaire en cours : ${data.qDraft?.answers?.length||0}/${questions.length} réponses enregistrées.`:"Réponds au questionnaire ADN pour construire ton premier profil.";
+ document.getElementById("homeDesc").textContent=conf?"Ton profil évolutif est calculé à partir de 20 dimensions.":progress?`Questionnaire en cours : ${data.qDraft?.answers?.length||0}/${questions.length} réponses enregistrées.`:"Réponds au questionnaire DNA pour construire ton premier profil.";
  document.getElementById("completion").textContent=progress+"%";
  document.getElementById("dnaScore").textContent=conf?score:"—";
  document.getElementById("confidence").textContent=`Questionnaire : ${progress}%`;
- const homeBtn=document.getElementById("homeDnaBtn"),dnaBtn=document.getElementById("dnaStart");const label=conf?"REFAIRE MON ADN":progress?"REPRENDRE MON ADN":"COMMENCER MON ADN";if(homeBtn)homeBtn.textContent=label;if(dnaBtn)dnaBtn.textContent=label;
+ const homeBtn=document.getElementById("homeDnaBtn"),dnaBtn=document.getElementById("dnaStart");const label=conf?"REFAIRE MON ADN":progress?"REPRENDRE MON DNA":"COMMENCER MON DNA";if(homeBtn)homeBtn.textContent=label;if(dnaBtn)dnaBtn.textContent=label;
  document.getElementById("profileName").textContent=data.name||"Ton profil";
  const ae=document.getElementById("accountEmail");if(ae)ae.textContent=(data.account&&data.account.email)||authState.user?.email||"Compte cloud";
  const p=data.profile||{};const pc=!!(p.birthDate&&p.city);document.getElementById("profileCompletionTitle").textContent=pc?"Profil de rencontre actif":"Complète ton profil";document.getElementById("profileCompletionText").textContent=pc?`${p.age||ageFromBirthDate(p.birthDate)} ans · ${p.city} · ${p.goal==="vie-commune"?"Construire une vie à deux":p.goal==="relation-serieuse"?"Relation sérieuse":"Faire connaissance"}`:"Âge, ville et intention de rencontre permettront de filtrer les profils compatibles.";
@@ -581,7 +580,7 @@ function render(){
  document.getElementById("insightShort").textContent=entries[0]?entries[0][0]:"En construction";
  document.getElementById("signature").textContent=entries.length?signature(entries):"Ton identité évolutive";
  document.getElementById("tags").innerHTML=entries.slice(0,5).map(x=>`<span class="tag">${x[0]} · ${x[1]}</span>`).join("");
- document.getElementById("bars").innerHTML=entries.length?entries.map(x=>`<div class="row"><span>${x[0]}</span><div class="track"><i style="width:${x[1]}%"></i></div><b>${x[1]}</b></div>`).join(""):"<p class='muted'>Commence ton questionnaire ADN.</p>";
+ document.getElementById("bars").innerHTML=entries.length?entries.map(x=>`<div class="row"><span>${x[0]}</span><div class="track"><i style="width:${x[1]}%"></i></div><b>${x[1]}</b></div>`).join(""):"<p class='muted'>Commence ton questionnaire DNA.</p>";
  if(entries.length){
    const t=[];
    const pairs=[["Autonomie","Relations","Autonomie ↔ Relations"],["Ambition","Équilibre","Performance ↔ Équilibre"],["Curiosité","Sécurité","Nouveauté ↔ Sécurité"],["Intimité","Autonomie","Proximité ↔ Indépendance"]];
@@ -733,7 +732,7 @@ async function startV2Questionnaire(){
     go("questionnaireV2");
   }catch(e){
     console.error(e);
-    alert("Impossible de charger l’ADN approfondi : "+(e.message||e));
+    alert("Impossible de charger ADN approfondi : "+(e.message||e));
   }
 }
 
@@ -744,7 +743,7 @@ function updateV2Summary(){
   ["v2HomeProgress","v2DnaProgress"].forEach(id=>{const el=document.getElementById(id);if(el)el.style.width=pct+"%"});
   const hs=document.getElementById("v2HomeStatus"); if(hs)hs.textContent=pct>=100?"ADN approfondi complété ✓":`${answered}/${visible.length} réponses · ${pct}%`;
   const ds=document.getElementById("v2DnaStatus"); if(ds)ds.textContent=pct>=100?"ADN approfondi complété ✓":`${pct}% complété`;
-  const db=document.getElementById("v2DnaBtn"); if(db)db.textContent=pct>=100?"REVOIR L’ADN APPROFONDI":pct?"REPRENDRE L’ADN APPROFONDI":"COMMENCER L’ADN APPROFONDI";
+  const db=document.getElementById("v2DnaBtn"); if(db)db.textContent=pct>=100?"REVOIR ADN approfondi":pct?"REPRENDRE ADN approfondi":"COMMENCER ADN approfondi";
 }
 
 function renderV2Question(){
@@ -894,7 +893,7 @@ function prevV2Question(){
 
 async function preloadV2Summary(){
   if(!authState.user)return;
-  try{await loadV2Data()}catch(e){console.warn("DNA V2 preload",e)}
+  try{await loadV2Data()}catch(e){console.warn("ADN approfondi preload",e)}
 }
 
 const demoProfiles=[
@@ -918,7 +917,7 @@ async function findMatch(){
  if((p.identityStatus||"unverified")!=="verified"){alert("DESTINY VERIFIED requis : vérifie d’abord ton identité pour accéder aux Matchs.");go("profile");return}
  if(!p.birthDate||!p.city){alert("Complète d’abord ton profil de rencontre.");go("profile");return}
  const empty=document.getElementById("matchEmpty"),btn=empty.querySelector("button"),old=btn.textContent;
- btn.disabled=true;btn.textContent="RECHERCHE ADN APPROFONDI…";
+ btn.disabled=true;btn.textContent="RECHERCHE ADN approfondi…";
  try{
    let rows=null, v2err=null;
    const r2=await sb.rpc("find_destiny_v2_matches_private",{limit_count:5});
@@ -939,15 +938,15 @@ async function findMatch(){
      save(); renderMatch(data.lastMatch); return;
    }
 
-   // Fallback vers le moteur DNA historique si DNA V2 n'est pas encore disponible
+   // Fallback vers le moteur DNA historique si ADN approfondi n'est pas encore disponible
    if(!data.confidence){
-     alert("Complète DNA V2 (ou ton ADN psychologique) avant de lancer le matching.");
+     alert("Complète ADN approfondi (ou ton ADN psychologique) avant de lancer le matching.");
      startV2Questionnaire(); return;
    }
    const {data:oldRows,error}=await sb.rpc("find_destiny_matches",{limit_count:5});
    if(error)throw error;
    if(!oldRows||!oldRows.length){
-     alert("Aucun profil compatible complet n’est encore disponible. Pour tester DNA V2, complète le questionnaire sur deux comptes différents.");
+     alert("Aucun profil compatible complet n’est encore disponible. Pour tester ADN approfondi, complète le questionnaire sur deux comptes différents.");
      return;
    }
    const m=oldRows[0];
@@ -972,8 +971,8 @@ function renderMatch(m){
      ["Intimité",m.v2Scores.intimacy],["Projet",m.v2Scores.project],["Valeurs",m.v2Scores.values]
    ].sort((a,b)=>(b[1]||0)-(a[1]||0)).slice(0,4).map(x=>`<span class="tag">${x[0]} · ${x[1]??0}%</span>`).join("");
  }document.getElementById("matchName").textContent=m.mutual?(m.name+" · "+m.archetype):"Profil mystère";document.getElementById("matchStatus").textContent=m.mutual?"CONNEXION MUTUELLE":m.score>=92?"SIGNAL RARE":m.score>=85?"FORTE COMPATIBILITÉ":"MATCH POTENTIEL";document.getElementById("matchMeta").textContent=`${m.age} ans · ${m.city} · ${m.goal==="vie-commune"?"Construire à deux":m.goal==="relation-serieuse"?"Relation sérieuse":"Faire connaissance"}`;
- if(m.v2){ /* scores DNA V2 déjà affichés */ }
- else if(m.dims){const d=data.dimensions,b=m.dims;const values=groupScore(d,b,["Identité","Empathie","Équilibre","Vision"]), rel=groupScore(d,b,["Relations","Intimité","Autonomie","Empathie"]), com=groupScore(d,b,["Communication","Émotions","Empathie"]), proj=groupScore(d,b,["Vision","Projection","Ambition","Équilibre"]);document.getElementById("mValues").textContent=values+"%";document.getElementById("mRelation").textContent=rel+"%";document.getElementById("mCommunication").textContent=com+"%";document.getElementById("mProjection").textContent=proj+"%";const strengths=dimensions.map(k=>[k,100-Math.abs(d[k]-b[k])]).sort((x,y)=>y[1]-x[1]).slice(0,5);document.getElementById("matchStrengths").innerHTML=strengths.map(x=>`<span class="tag">${x[0]} · ${Math.round(x[1])}%</span>`).join("");document.getElementById("matchWhy").textContent=`Vos profils présentent une proximité forte sur ${strengths.slice(0,3).map(x=>x[0]).join(", ")}. DESTINY recherche un équilibre, pas une copie conforme.`}else{document.getElementById("mValues").textContent=m.score+"%";document.getElementById("mRelation").textContent=m.score+"%";document.getElementById("mCommunication").textContent=m.score+"%";document.getElementById("mProjection").textContent=m.score+"%";document.getElementById("matchStrengths").innerHTML='<span class="tag">ADN comparé côté serveur</span><span class="tag">Réponses privées</span><span class="tag">RLS actif</span>';document.getElementById("matchWhy").textContent="Le score a été calculé côté serveur sur les 20 dimensions. Les réponses ADN détaillées de l’autre membre ne sont pas envoyées à ton téléphone."}
+ if(m.v2){ /* scores ADN approfondi déjà affichés */ }
+ else if(m.dims){const d=data.dimensions,b=m.dims;const values=groupScore(d,b,["Identité","Empathie","Équilibre","Vision"]), rel=groupScore(d,b,["Relations","Intimité","Autonomie","Empathie"]), com=groupScore(d,b,["Communication","Émotions","Empathie"]), proj=groupScore(d,b,["Vision","Projection","Ambition","Équilibre"]);document.getElementById("mValues").textContent=values+"%";document.getElementById("mRelation").textContent=rel+"%";document.getElementById("mCommunication").textContent=com+"%";document.getElementById("mProjection").textContent=proj+"%";const strengths=dimensions.map(k=>[k,100-Math.abs(d[k]-b[k])]).sort((x,y)=>y[1]-x[1]).slice(0,5);document.getElementById("matchStrengths").innerHTML=strengths.map(x=>`<span class="tag">${x[0]} · ${Math.round(x[1])}%</span>`).join("");document.getElementById("matchWhy").textContent=`Vos profils présentent une proximité forte sur ${strengths.slice(0,3).map(x=>x[0]).join(", ")}. DESTINY recherche un équilibre, pas une copie conforme.`}else{document.getElementById("mValues").textContent=m.score+"%";document.getElementById("mRelation").textContent=m.score+"%";document.getElementById("mCommunication").textContent=m.score+"%";document.getElementById("mProjection").textContent=m.score+"%";document.getElementById("matchStrengths").innerHTML='<span class="tag">DNA comparé côté serveur</span><span class="tag">Réponses privées</span><span class="tag">RLS actif</span>';document.getElementById("matchWhy").textContent="Le score a été calculé côté serveur sur les 20 dimensions. Les réponses DNA détaillées de l’autre membre ne sont pas envoyées à ton téléphone."}
  const state=document.getElementById("requestState"),btn=document.getElementById("requestBtn");if(state&&btn){if(m.mutual){state.textContent="Intérêt réciproque confirmé. Vous pouvez maintenant vous découvrir.";btn.textContent="MATCH MUTUEL ✓";btn.disabled=true}else if(m.interest){state.textContent="Signal envoyé. Dans la version connectée, DESTINY attendra la réponse de l’autre personne.";btn.textContent="SIGNAL ENVOYÉ ✓";btn.disabled=true}else{state.textContent="Tu peux envoyer un signal discret. Aucune conversation ne s’ouvre sans intérêt réciproque.";btn.textContent="ENVOYER UN SIGNAL ♡";btn.disabled=false}}
 }
 async function revealMatch(){
@@ -1040,10 +1039,10 @@ function answerAsk(){
  const q=document.getElementById("askText").value.trim();if(!q)return;
  document.getElementById("askResult").classList.remove("hidden");
  const entries=Object.entries(data.dimensions||{}).sort((a,b)=>b[1]-a[1]);
- document.getElementById("askTitle").textContent=entries[0]?`Ton signal dominant : ${entries[0][0]}`:"Ton ADN est encore à construire";
- document.getElementById("askBody").textContent=entries[0]?`Ta question est interprétée à partir de ton profil actuel. Ton score global est ${data.score}/100 et ta dimension dominante est ${entries[0][0]} (${entries[0][1]}/100). Le moteur conversationnel complet sera connecté dans une prochaine version.`:"Commence par répondre aux 40 questions ADN afin que DESTINY dispose d'un premier profil.";
+ document.getElementById("askTitle").textContent=entries[0]?`Ton signal dominant : ${entries[0][0]}`:"Ton DNA est encore à construire";
+ document.getElementById("askBody").textContent=entries[0]?`Ta question est interprétée à partir de ton profil actuel. Ton score global est ${data.score}/100 et ta dimension dominante est ${entries[0][0]} (${entries[0][1]}/100). Le moteur conversationnel complet sera connecté dans une prochaine version.`:"Commence par répondre aux 40 questions DNA afin que DESTINY dispose d'un premier profil.";
 }
-async function resetApp(){if(!confirm("Recommencer l’ADN ? Tes réponses actuelles seront remplacées."))return;data.dimensions={};data.score=0;data.confidence=0;data.progress=0;data.qDraft={answers:[],currentIndex:0};save();if(authState.user){await Promise.allSettled([sb.from("dna_profiles").update({completed:false,updated_at:new Date().toISOString()}).eq("user_id",authState.user.id),sb.from("dna_questionnaires").upsert({user_id:authState.user.id,answers:[],current_index:0,completed:false,updated_at:new Date().toISOString()},{onConflict:"user_id"})])}render();go("dna")}
+async function resetApp(){if(!confirm("Recommencer le DNA ? Tes réponses actuelles seront remplacées."))return;data.dimensions={};data.score=0;data.confidence=0;data.progress=0;data.qDraft={answers:[],currentIndex:0};save();if(authState.user){await Promise.allSettled([sb.from("dna_profiles").update({completed:false,updated_at:new Date().toISOString()}).eq("user_id",authState.user.id),sb.from("dna_questionnaires").upsert({user_id:authState.user.id,answers:[],current_index:0,completed:false,updated_at:new Date().toISOString()},{onConflict:"user_id"})])}render();go("dna")}
 if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}))}
 bootAuth();render();setTimeout(()=>preloadV2Summary(),1200);
 </script>
