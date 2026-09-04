@@ -198,14 +198,40 @@ textarea,input,select{width:100%;background:#0e1016;border:1px solid var(--line)
 .chat-reply-preview-text{min-width:0;flex:1;font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .chat-reply-preview-text strong{display:block;color:var(--gold);font-size:10px;margin-bottom:2px}
 .chat-reply-cancel{border:0;background:transparent;color:var(--muted);font-size:20px;cursor:pointer;padding:2px 5px}
+
+/* DESTINY v4.6 — Cœur de marque */
+.destiny-heart{display:inline-block;vertical-align:middle;filter:drop-shadow(0 0 16px rgba(145,129,255,.22))}
+.destiny-heart-lg{width:92px;height:82px;margin:18px auto 16px;display:block}
+.destiny-heart-sm{width:25px;height:23px;margin-right:10px;flex:0 0 auto}
+.destiny-brand-lockup{display:flex;align-items:center}
+.destiny-heart .heart-outline{fill:url(#destinyHeartGradient);stroke:rgba(246,243,236,.34);stroke-width:1.4}
+.destiny-heart .heart-cut{fill:#0b0c11;opacity:.9}
+.destiny-heart .heart-spark{fill:#f6f3ec;opacity:.9}
+
 </style>
 </head>
 <body>
+
+<svg width="0" height="0" style="position:absolute;overflow:hidden" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="destinyHeartGradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#d0b071"/>
+      <stop offset="55%" stop-color="#b79ac4"/>
+      <stop offset="100%" stop-color="#9181ff"/>
+    </linearGradient>
+    <symbol id="destinyHeartSymbol" viewBox="0 0 100 92">
+      <path d="M50 84C43 76 14 58 8 35 3 16 16 5 31 6c9 1 15 6 19 13C54 12 60 7 69 6c15-1 28 10 23 29-6 23-35 41-42 49Z" fill="url(#destinyHeartGradient)" stroke="rgba(246,243,236,.34)" stroke-width="1.4"/>
+      <path d="M50 24c-5 10-12 15-22 18 8 3 15 8 22 19 7-11 14-16 22-19-10-3-17-8-22-18Z" fill="#0b0c11" fill-opacity=".9"/>
+      <circle cx="50" cy="42" r="3.1" fill="#f6f3ec" fill-opacity=".9"/>
+    </symbol>
+  </defs>
+</svg>
+
 <div class="app">
 
 <div id="auth" class="view active center">
   <div class="auth-wrap">
-    <div class="dna-orb">🧬</div><div class="logo-big">DESTINY</div>
+    <svg class="destiny-heart destiny-heart-lg" viewBox="0 0 100 92" aria-label="Cœur DESTINY"><use href="#destinyHeartSymbol"></use></svg><div class="logo-big">DESTINY</div>
     <p class="sub">TON COMPTE · TON DNA · TES MATCHS</p>
     <div class="auth-tabs"><button id="tabLogin" class="active" onclick="authMode('login')">CONNEXION</button><button id="tabSignup" onclick="authMode('signup')">CRÉER UN COMPTE</button></div>
     <div id="signupName" class="field hidden"><label>PRÉNOM / PSEUDO</label><input id="aName" autocomplete="name" placeholder="Ton prénom"></div>
@@ -231,14 +257,14 @@ textarea,input,select{width:100%;background:#0e1016;border:1px solid var(--line)
 </div>
 
 <div id="welcome" class="view center">
-  <div class="dna-orb">🧬</div><div class="logo-big">DESTINY</div>
+  <svg class="destiny-heart destiny-heart-lg" viewBox="0 0 100 92" aria-label="Cœur DESTINY"><use href="#destinyHeartSymbol"></use></svg><div class="logo-big">DESTINY</div>
   <p class="sub">YOUR STORY · YOUR DNA · YOUR FUTURE</p>
   <div style="height:30vh"></div>
   <button class="btn" onclick="begin()">ENTRER DANS DESTINY</button>
 </div>
 
 <div id="home" class="view">
-  <div class="top"><div class="brand">DESTINY</div><button class="iconbtn" onclick="go('dna')">🧬</button></div>
+  <div class="top"><div class="destiny-brand-lockup"><svg class="destiny-heart destiny-heart-sm" viewBox="0 0 100 92" aria-hidden="true"><use href="#destinyHeartSymbol"></use></svg><div class="brand">DESTINY</div></div><button class="iconbtn" onclick="go('dna')">🧬</button></div>
   <div class="hero"><div class="eyebrow">TON ESPACE PERSONNEL</div><div class="hello" id="hello">Bonjour</div><div class="sub">Ton profil évolue avec toi.</div></div>
   <div class="card dna-card">
     <div class="eyebrow">ADN</div>
