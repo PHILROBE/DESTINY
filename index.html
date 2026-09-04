@@ -183,6 +183,21 @@ textarea,input,select{width:100%;background:#0e1016;border:1px solid var(--line)
 .chat-tech-status{font-size:9px;opacity:.55;margin-top:2px}
 #chatPresenceStatus{font-size:11px;margin-top:3px;color:var(--muted)}
 #chatPresenceStatus.online{color:var(--gold);font-weight:700}
+
+/* DESTINY v4.5 — Réponse à un message */
+.chat-row{position:relative}
+.chat-bubble{position:relative}
+.chat-reply-btn{position:absolute;top:50%;transform:translateY(-50%);width:28px;height:28px;border-radius:50%;border:1px solid rgba(208,176,113,.32);background:#11131a;color:var(--gold);display:grid;place-items:center;font-size:14px;cursor:pointer;opacity:.78}
+.chat-row.mine .chat-reply-btn{right:calc(100% + 7px)}
+.chat-row.theirs .chat-reply-btn{left:calc(100% + 7px)}
+.chat-reply-quote{margin-bottom:7px;padding:7px 9px;border-left:3px solid var(--gold);border-radius:7px;background:rgba(7,8,12,.26);font-size:11px;line-height:1.35;max-width:100%;overflow:hidden}
+.chat-reply-quote strong{display:block;color:var(--gold);font-size:10px;margin-bottom:2px}
+.chat-reply-quote span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:.88}
+.chat-reply-preview{display:flex;align-items:center;gap:9px;margin-bottom:7px;padding:8px 10px;border:1px solid rgba(208,176,113,.28);border-left:3px solid var(--gold);border-radius:10px;background:#11131a}
+.chat-reply-preview.hidden{display:none!important}
+.chat-reply-preview-text{min-width:0;flex:1;font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chat-reply-preview-text strong{display:block;color:var(--gold);font-size:10px;margin-bottom:2px}
+.chat-reply-cancel{border:0;background:transparent;color:var(--muted);font-size:20px;cursor:pointer;padding:2px 5px}
 </style>
 </head>
 <body>
@@ -408,6 +423,10 @@ textarea,input,select{width:100%;background:#0e1016;border:1px solid var(--line)
           </div>
           <div id="chatTypingLabel" class="chat-typing-label">Ton match écrit…</div>
         </div>
+      </div>
+      <div id="chatReplyPreview" class="chat-reply-preview hidden">
+        <div class="chat-reply-preview-text"><strong id="chatReplyTo">Répondre</strong><span id="chatReplyText"></span></div>
+        <button class="chat-reply-cancel" type="button" onclick="cancelChatReply()" aria-label="Annuler la réponse">×</button>
       </div>
       <div class="chat-compose-row">
         <textarea id="chatInput" rows="2" maxlength="2000" placeholder="Écris un message…" onkeydown="chatKeyDown(event)" oninput="chatInputChanged()"></textarea>
@@ -1726,7 +1745,8 @@ let chatState={
   peerTypingTimer:null,
   lastTypingSentAt:0,
   liveSeen:new Set(),
-  receiptRecords:new Map()
+  receiptRecords:new Map(),
+  replyTo:null
 };
 
 function setPeerTyping(active){
@@ -2142,31 +2162,62 @@ function receiptHtml(msg){
   return `<div class="chat-meta"><div class="chat-time">${formatChatTime(msg.created_at)}</div><span class="chat-receipt${cls}" data-receipt-key="${escapeHtml(r.key)}" title="${title}">${marks}</span></div>`;
 }
 
+const DESTINY_REPLY_PREFIX="⁣DESTINY_REPLY:";
+function encodeReplyMessage(text,reply){
+  if(!reply)return text;
+  const meta={n:String(reply.name||"Message"),t:String(reply.text||"").slice(0,180)};
+  try{return DESTINY_REPLY_PREFIX+btoa(unescape(encodeURIComponent(JSON.stringify(meta))))+"⁣"+text}catch{return text}
+}
+function decodeReplyMessage(raw){
+  const value=String(raw??"");
+  if(!value.startsWith(DESTINY_REPLY_PREFIX))return {text:value,reply:null};
+  const rest=value.slice(DESTINY_REPLY_PREFIX.length),cut=rest.indexOf("⁣");
+  if(cut<0)return {text:value,reply:null};
+  try{
+    const meta=JSON.parse(decodeURIComponent(escape(atob(rest.slice(0,cut)))));
+    return {text:rest.slice(cut+1),reply:{name:meta.n||"Message",text:meta.t||""}};
+  }catch{return {text:value,reply:null}}
+}
+function replyQuoteHtml(reply){
+  if(!reply)return "";
+  return `<div class="chat-reply-quote"><strong>${escapeHtml(reply.name||"Message")}</strong><span>${escapeHtml(reply.text||"")}</span></div>`;
+}
+function setChatReply(name,text){
+  chatState.replyTo={name:String(name||"Message"),text:String(text||"").slice(0,180)};
+  const preview=document.getElementById("chatReplyPreview"),who=document.getElementById("chatReplyTo"),body=document.getElementById("chatReplyText");
+  if(who)who.textContent=`Répondre à ${chatState.replyTo.name}`;
+  if(body)body.textContent=chatState.replyTo.text;
+  preview?.classList.remove("hidden");
+  document.getElementById("chatInput")?.focus();
+}
+function cancelChatReply(){
+  chatState.replyTo=null;
+  document.getElementById("chatReplyPreview")?.classList.add("hidden");
+}
+function chatReplyFromButton(btn){
+  const row=btn?.closest(".chat-row");
+  if(!row)return;
+  setChatReply(row.dataset.replyName||"Message",row.dataset.replyText||"");
+}
+function replyButtonHtml(){return `<button class="chat-reply-btn" type="button" onclick="chatReplyFromButton(this)" title="Répondre" aria-label="Répondre à ce message">↩</button>`}
+
 function appendLiveMessage(msg){
   const box=document.getElementById("chatMessages");
   if(!box || !msg || !msg.content)return;
-
+  const parsed=decodeReplyMessage(msg.content);
   const key=String(msg.client_nonce||msg.id||`${msg.sender_id||""}|${msg.created_at||""}|${msg.content||""}`);
   if(chatState.liveSeen.has(key))return;
   chatState.liveSeen.add(key);
-  if(chatState.liveSeen.size>300){
-    const first=chatState.liveSeen.values().next().value;
-    chatState.liveSeen.delete(first);
-  }
-
-  const empty=box.querySelector(".chat-empty");
-  if(empty)box.innerHTML="";
-
+  if(chatState.liveSeen.size>300){const first=chatState.liveSeen.values().next().value;chatState.liveSeen.delete(first)}
+  const empty=box.querySelector(".chat-empty"); if(empty)box.innerHTML="";
   const mine=msg.sender_id===authState.user?.id;
   if(mine)rememberReceipt(msg,"sent");
   const row=document.createElement("div");
   row.className=`chat-row ${mine?"mine":"theirs"}`;
   row.dataset.liveKey=key;
-  row.innerHTML=`
-    <div class="chat-bubble">
-      <div>${escapeHtml(msg.content)}</div>
-      ${mine?receiptHtml(msg):`<div class="chat-time">${formatChatTime(msg.created_at||new Date().toISOString())}</div>`}
-    </div>`;
+  row.dataset.replyName=mine?"Toi":(chatState.peerName||"Ton match");
+  row.dataset.replyText=parsed.text.slice(0,180);
+  row.innerHTML=`<div class="chat-bubble">${replyButtonHtml()}${replyQuoteHtml(parsed.reply)}<div>${escapeHtml(parsed.text)}</div>${mine?receiptHtml(msg):`<div class="chat-time">${formatChatTime(msg.created_at||new Date().toISOString())}</div>`}</div>`;
   box.appendChild(row);
   requestAnimationFrame(()=>{box.scrollTop=box.scrollHeight});
 }
@@ -2174,35 +2225,18 @@ function appendLiveMessage(msg){
 function renderChatMessages(rows){
   const box=document.getElementById("chatMessages");
   if(!box)return;
-
   const signature=rows.map(r=>`${r.id||""}|${r.sender_id||""}|${r.created_at||""}|${r.content||""}|${r.read_at||r.is_read||r.read||""}|${r.delivered_at||r.is_delivered||""}`).join("§");
   if(signature===chatState.lastSignature)return;
   chatState.lastSignature=signature;
-
-  if(!rows.length){
-    box.innerHTML='<div class="chat-empty">Votre conversation commence ici.<br>Envoie le premier message ✨</div>';
-    chatState.lastCount=0;
-    return;
-  }
-
+  if(!rows.length){box.innerHTML='<div class="chat-empty">Votre conversation commence ici.<br>Envoie le premier message ✨</div>';chatState.lastCount=0;return}
   const nearBottom=(box.scrollHeight-box.scrollTop-box.clientHeight)<90;
-
   box.innerHTML=rows.map(r=>{
-    const mine=r.sender_id===authState.user?.id;
-    return `
-      <div class="chat-row ${mine?"mine":"theirs"}">
-        <div class="chat-bubble">
-          <div>${escapeHtml(r.content)}</div>
-          ${mine?receiptHtml(r):`<div class="chat-time">${formatChatTime(r.created_at)}</div>`}
-        </div>
-      </div>
-    `;
+    const mine=r.sender_id===authState.user?.id,parsed=decodeReplyMessage(r.content);
+    const who=mine?"Toi":(chatState.peerName||"Ton match");
+    return `<div class="chat-row ${mine?"mine":"theirs"}" data-reply-name="${escapeHtml(who)}" data-reply-text="${escapeHtml(parsed.text.slice(0,180))}"><div class="chat-bubble">${replyButtonHtml()}${replyQuoteHtml(parsed.reply)}<div>${escapeHtml(parsed.text)}</div>${mine?receiptHtml(r):`<div class="chat-time">${formatChatTime(r.created_at)}</div>`}</div></div>`;
   }).join("");
-
   chatState.lastCount=rows.length;
-  if(nearBottom || rows.length<=1){
-    requestAnimationFrame(()=>{box.scrollTop=box.scrollHeight});
-  }
+  if(nearBottom || rows.length<=1)requestAnimationFrame(()=>{box.scrollTop=box.scrollHeight});
 }
 
 async function sendChatMessage(){
@@ -2229,13 +2263,16 @@ async function sendChatMessage(){
   broadcastTyping(false);
 
   try{
+    const replySnapshot=chatState.replyTo?{...chatState.replyTo}:null;
+    const storedContent=encodeReplyMessage(text,replySnapshot);
     const {error}=await sb.rpc("destiny_send_message",{
       p_match_id:m.matchId,
-      p_content:text
+      p_content:storedContent
     });
     if(error)throw error;
 
     input.value="";
+    cancelChatReply();
 
     // v3.5 : affichage instantané indépendant du rechargement SQL.
     // Le contenu du message est envoyé directement sur le canal Realtime
@@ -2243,7 +2280,7 @@ async function sendChatMessage(){
     const livePayload={
       match_id:m.matchId,
       sender_id:authState.user.id,
-      content:text,
+      content:storedContent,
       created_at:new Date().toISOString(),
       client_nonce:`${authState.user.id}-${Date.now()}-${Math.random().toString(36).slice(2)}`
     };
