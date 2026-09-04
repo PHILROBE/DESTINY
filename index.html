@@ -85,6 +85,8 @@ textarea,input,select{width:100%;background:#0e1016;border:1px solid var(--line)
 .chat-avatar img{width:100%;height:100%;object-fit:cover;display:block}
 .chat-peer{font-size:20px;font-weight:300;margin:0}
 .chat-status{font-size:11px;color:#9be6b5;margin-top:3px}
+.chat-typing{font-size:11px;color:var(--gold);margin-top:5px;min-height:15px;animation:chatTypingPulse 1.15s ease-in-out infinite}
+@keyframes chatTypingPulse{0%,100%{opacity:.45}50%{opacity:1}}
 .chat-messages{display:flex;flex-direction:column;gap:9px;min-height:360px;max-height:58vh;overflow-y:auto;padding:8px 2px 16px;scroll-behavior:smooth}
 .chat-empty{margin:auto;text-align:center;color:var(--muted);font-size:13px;line-height:1.6;padding:40px 18px}
 .chat-row{display:flex}
@@ -362,6 +364,7 @@ textarea,input,select{width:100%;background:#0e1016;border:1px solid var(--line)
     <div style="min-width:0;flex:1">
       <h2 class="chat-peer" id="chatPeerName">Ton match</h2>
       <div class="chat-status" id="chatRealtimeStatus">● MATCH MUTUEL · connexion temps réel…</div>
+      <div id="chatTyping" class="chat-typing hidden">Ton match écrit…</div>
     </div>
     <button class="iconbtn" type="button" onclick="refreshChat()" title="Actualiser">↻</button>
   </div>
@@ -373,7 +376,7 @@ textarea,input,select{width:100%;background:#0e1016;border:1px solid var(--line)
 
     <div class="chat-composer">
       <div class="chat-compose-row">
-        <textarea id="chatInput" rows="2" maxlength="2000" placeholder="Écris un message…" onkeydown="chatKeyDown(event)"></textarea>
+        <textarea id="chatInput" rows="2" maxlength="2000" placeholder="Écris un message…" onkeydown="chatKeyDown(event)" oninput="chatInputChanged()"></textarea>
         <button id="chatSendBtn" class="chat-send" type="button" onclick="sendChatMessage()" aria-label="Envoyer">➤</button>
       </div>
       <div class="chat-note">Conversation visible uniquement par les deux personnes de ce match. Les nouveaux messages apparaissent automatiquement.</div>
@@ -441,7 +444,7 @@ textarea,input,select{width:100%;background:#0e1016;border:1px solid var(--line)
     <button class="btn dark" style="margin-top:14px" onclick="logout()">SE DÉCONNECTER</button>
     <button class="btn dark danger" style="margin-top:10px" onclick="clearLocalData()">EFFACER LES DONNÉES LOCALES</button>
   </div>
-  <div class="notice">Version v3.2 PERSISTENT MATCH PROFILE : profil de match révélé conservé, accès direct à la conversation, détails de compatibilité repliables, messagerie privée temps réel et compteur de messages non lus synchronisés dans Supabase. Les réponses sensibles restent privées.</div>
+  <div class="notice">Version v3.4 REALTIME CHAT FIX+ : profil de match révélé conservé, accès direct à la conversation, détails de compatibilité repliables, messagerie privée temps réel renforcée, indicateur de saisie et compteur de messages non lus synchronisés dans Supabase. Les réponses sensibles restent privées.</div>
   <button class="btn dark" style="margin-top:12px" onclick="resetApp()">Recommencer le DNA</button>
 </div>
 
@@ -1474,10 +1477,68 @@ let chatState={
   peerName:"Ton match",
   busy:false,
   lastCount:0,
+  lastSignature:"",
   channel:null,
-  refreshTimer:null
+  refreshTimer:null,
+  pollTimer:null,
+  syncBusy:false,
+  pollSeq:0,
+  typingTimer:null,
+  peerTypingTimer:null,
+  lastTypingSentAt:0
 };
 
+function setPeerTyping(active){
+  const el=document.getElementById("chatTyping");
+  if(!el)return;
+
+  if(chatState.peerTypingTimer){
+    clearTimeout(chatState.peerTypingTimer);
+    chatState.peerTypingTimer=null;
+  }
+
+  if(active){
+    el.textContent=`${chatState.peerName||"Ton match"} écrit…`;
+    el.classList.remove("hidden");
+    chatState.peerTypingTimer=setTimeout(()=>setPeerTyping(false),1800);
+  }else{
+    el.classList.add("hidden");
+  }
+}
+
+async function broadcastTyping(active){
+  const channel=chatState.channel;
+  if(!channel || !authState.user || !chatState.matchId)return;
+  try{
+    await channel.send({
+      type:"broadcast",
+      event:"typing",
+      payload:{
+        match_id:chatState.matchId,
+        sender_id:authState.user.id,
+        typing:!!active
+      }
+    });
+  }catch(e){
+    console.warn("Typing broadcast",e);
+  }
+}
+
+function chatInputChanged(){
+  if(!chatState.channel)return;
+
+  const now=Date.now();
+  if(now-chatState.lastTypingSentAt>650){
+    chatState.lastTypingSentAt=now;
+    broadcastTyping(true);
+  }
+
+  if(chatState.typingTimer)clearTimeout(chatState.typingTimer);
+  chatState.typingTimer=setTimeout(()=>{
+    chatState.typingTimer=null;
+    broadcastTyping(false);
+  },1100);
+}
 
 async function stopChatRealtime(){
   if(chatState.refreshTimer){
@@ -1485,8 +1546,22 @@ async function stopChatRealtime(){
     chatState.refreshTimer=null;
   }
 
+  chatState.pollSeq++;
+  if(chatState.pollTimer){
+    clearTimeout(chatState.pollTimer);
+    chatState.pollTimer=null;
+  }
+
+  if(chatState.typingTimer){
+    clearTimeout(chatState.typingTimer);
+    chatState.typingTimer=null;
+  }
+
+  setPeerTyping(false);
+
   if(chatState.channel){
     try{
+      await broadcastTyping(false);
       await sb.removeChannel(chatState.channel);
     }catch(e){
       console.warn("Realtime remove channel",e);
@@ -1498,13 +1573,44 @@ async function stopChatRealtime(){
   if(status)status.textContent="● MATCH MUTUEL · conversation privée";
 }
 
-function scheduleRealtimeRefresh(){
+function scheduleRealtimeRefresh(delay=60){
   if(chatState.refreshTimer)clearTimeout(chatState.refreshTimer);
-  chatState.refreshTimer=setTimeout(()=>{
+  chatState.refreshTimer=setTimeout(async()=>{
     chatState.refreshTimer=null;
     const chatView=document.getElementById("chat");
-    if(chatView?.classList.contains("active"))refreshChat();
-  },120);
+    if(chatView?.classList.contains("active"))await refreshChat(true);
+  },delay);
+}
+
+async function forceChatSync(){
+  const chatView=document.getElementById("chat");
+  if(!chatView?.classList.contains("active"))return;
+  if(chatState.syncBusy)return;
+  chatState.syncBusy=true;
+  try{
+    await refreshChat(true);
+  }catch(e){
+    console.warn("Chat sync",e);
+  }finally{
+    chatState.syncBusy=false;
+  }
+}
+
+function startChatPolling(){
+  if(chatState.pollTimer){
+    clearTimeout(chatState.pollTimer);
+    chatState.pollTimer=null;
+  }
+  const seq=++chatState.pollSeq;
+  const tick=async()=>{
+    if(seq!==chatState.pollSeq)return;
+    const chatView=document.getElementById("chat");
+    if(!chatView?.classList.contains("active"))return;
+    await forceChatSync();
+    if(seq!==chatState.pollSeq)return;
+    chatState.pollTimer=setTimeout(tick,1000);
+  };
+  chatState.pollTimer=setTimeout(tick,700);
 }
 
 async function startChatRealtime(){
@@ -1516,14 +1622,17 @@ async function startChatRealtime(){
   }
 
   chatState.matchId=m.matchId;
+  chatState.peerId=m.userId;
+  chatState.peerName=m.name||"Ton match";
 
   const status=document.getElementById("chatRealtimeStatus");
   if(status)status.textContent="● MATCH MUTUEL · connexion temps réel…";
 
-  const channelName=`destiny-chat-${m.matchId}-${authState.user.id}`;
+  // Les deux membres du match utilisent exactement le même canal.
+  const channelName=`destiny-chat-${m.matchId}`;
 
   chatState.channel=sb
-    .channel(channelName)
+    .channel(channelName,{config:{broadcast:{self:false}}})
     .on(
       "postgres_changes",
       {
@@ -1535,6 +1644,30 @@ async function startChatRealtime(){
       payload=>{
         if(payload?.new?.match_id!==m.matchId)return;
         scheduleRealtimeRefresh();
+        if(payload?.new?.sender_id!==authState.user?.id){
+          setPeerTyping(false);
+          setTimeout(()=>markCurrentChatRead().catch(()=>{}),100);
+        }
+      }
+    )
+    .on(
+      "broadcast",
+      {event:"typing"},
+      ({payload})=>{
+        if(!payload || payload.match_id!==m.matchId)return;
+        if(payload.sender_id===authState.user?.id)return;
+        setPeerTyping(!!payload.typing);
+      }
+    )
+    .on(
+      "broadcast",
+      {event:"message-ping"},
+      ({payload})=>{
+        if(!payload || payload.match_id!==m.matchId)return;
+        if(payload.sender_id===authState.user?.id)return;
+        setPeerTyping(false);
+        scheduleRealtimeRefresh(20);
+        setTimeout(()=>markCurrentChatRead().catch(()=>{}),120);
       }
     )
     .subscribe(statusEvent=>{
@@ -1544,11 +1677,16 @@ async function startChatRealtime(){
       if(statusEvent==="SUBSCRIBED"){
         el.textContent="● MATCH MUTUEL · TEMPS RÉEL ACTIF";
       }else if(statusEvent==="CHANNEL_ERROR" || statusEvent==="TIMED_OUT"){
-        el.textContent="◌ MATCH MUTUEL · temps réel indisponible";
+        el.textContent="◌ MATCH MUTUEL · synchronisation active";
       }else if(statusEvent==="CLOSED"){
-        el.textContent="◌ MATCH MUTUEL · connexion fermée";
+        el.textContent="◌ MATCH MUTUEL · reconnexion automatique";
       }
     });
+
+  // Filet de sécurité indépendant de la réplication Postgres Realtime :
+  // tant que le chat reste ouvert, on relit la conversation chaque seconde.
+  // Cela fonctionne même si la table messages n'est pas publiée dans Realtime.
+  startChatPolling();
 }
 
 function formatChatTime(v){
@@ -1597,6 +1735,7 @@ async function openChat(){
   chatState.matchId=m.matchId;
   chatState.peerId=m.userId;
   chatState.peerName=m.name||"Ton match";
+  chatState.lastSignature="";
 
   const peer=document.getElementById("chatPeerName");
   if(peer)peer.textContent=chatState.peerName;
@@ -1606,7 +1745,7 @@ async function openChat(){
   markCurrentChatRead().catch(()=>{});
 }
 
-async function refreshChat(){
+async function refreshChat(silent=false){
   const m=data.lastMatch;
 
   if(!m?.mutual || !m?.matchId){
@@ -1622,10 +1761,10 @@ async function refreshChat(){
   const peer=document.getElementById("chatPeerName");
   if(peer)peer.textContent=chatState.peerName;
 
-  loadChatAvatar(chatState.peerId).catch(()=>{});
+  if(!silent)loadChatAvatar(chatState.peerId).catch(()=>{});
 
   const box=document.getElementById("chatMessages");
-  if(box)box.innerHTML='<div class="chat-empty">Chargement de la conversation…</div>';
+  if(box && !silent)box.innerHTML='<div class="chat-empty">Chargement de la conversation…</div>';
 
   try{
     const {data:rows,error}=await sb.rpc("destiny_get_messages",{
@@ -1638,7 +1777,7 @@ async function refreshChat(){
     await markCurrentChatRead();
   }catch(e){
     console.error("Chargement chat",e);
-    if(box)box.innerHTML=`<div class="chat-empty">Impossible de charger la conversation.<br>${escapeHtml(e.message||e)}</div>`;
+    if(box && !silent)box.innerHTML=`<div class="chat-empty">Impossible de charger la conversation.<br>${escapeHtml(e.message||e)}</div>`;
   }
 }
 
@@ -1646,11 +1785,17 @@ function renderChatMessages(rows){
   const box=document.getElementById("chatMessages");
   if(!box)return;
 
+  const signature=rows.map(r=>`${r.id||""}|${r.sender_id||""}|${r.created_at||""}|${r.content||""}`).join("§");
+  if(signature===chatState.lastSignature)return;
+  chatState.lastSignature=signature;
+
   if(!rows.length){
     box.innerHTML='<div class="chat-empty">Votre conversation commence ici.<br>Envoie le premier message ✨</div>';
     chatState.lastCount=0;
     return;
   }
+
+  const nearBottom=(box.scrollHeight-box.scrollTop-box.clientHeight)<90;
 
   box.innerHTML=rows.map(r=>{
     const mine=r.sender_id===authState.user?.id;
@@ -1665,7 +1810,9 @@ function renderChatMessages(rows){
   }).join("");
 
   chatState.lastCount=rows.length;
-  requestAnimationFrame(()=>{box.scrollTop=box.scrollHeight});
+  if(nearBottom || rows.length<=1){
+    requestAnimationFrame(()=>{box.scrollTop=box.scrollHeight});
+  }
 }
 
 async function sendChatMessage(){
@@ -1685,6 +1832,11 @@ async function sendChatMessage(){
 
   chatState.busy=true;
   if(btn)btn.disabled=true;
+  if(chatState.typingTimer){
+    clearTimeout(chatState.typingTimer);
+    chatState.typingTimer=null;
+  }
+  broadcastTyping(false);
 
   try{
     const {error}=await sb.rpc("destiny_send_message",{
@@ -1694,7 +1846,26 @@ async function sendChatMessage(){
     if(error)throw error;
 
     input.value="";
-    await refreshChat();
+
+    // Signal immédiat à l'autre navigateur. Ce broadcast ne dépend pas de
+    // l'activation de postgres_changes sur la table messages.
+    if(chatState.channel){
+      try{
+        await chatState.channel.send({
+          type:"broadcast",
+          event:"message-ping",
+          payload:{
+            match_id:m.matchId,
+            sender_id:authState.user.id,
+            sent_at:Date.now()
+          }
+        });
+      }catch(e){
+        console.warn("Message ping",e);
+      }
+    }
+
+    await refreshChat(true);
   }catch(e){
     console.error("Envoi message",e);
     alert("Impossible d’envoyer le message : "+(e.message||e));
@@ -1712,6 +1883,21 @@ function chatKeyDown(event){
   }
 }
 
+// Resynchronisation immédiate quand le navigateur revient au premier plan.
+window.addEventListener("focus",()=>{
+  const chatView=document.getElementById("chat");
+  if(chatView?.classList.contains("active"))forceChatSync();
+});
+document.addEventListener("visibilitychange",()=>{
+  if(document.visibilityState==="visible"){
+    const chatView=document.getElementById("chat");
+    if(chatView?.classList.contains("active"))forceChatSync();
+  }
+});
+window.addEventListener("pageshow",()=>{
+  const chatView=document.getElementById("chat");
+  if(chatView?.classList.contains("active"))forceChatSync();
+});
 
 function identityStatus(){return data?.profile?.identityStatus||"unverified"}
 function renderIdentityStatus(){
