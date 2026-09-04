@@ -199,6 +199,18 @@ textarea,input,select{width:100%;background:#0e1016;border:1px solid var(--line)
 .chat-reply-preview-text strong{display:block;color:var(--gold);font-size:10px;margin-bottom:2px}
 .chat-reply-cancel{border:0;background:transparent;color:var(--muted);font-size:20px;cursor:pointer;padding:2px 5px}
 
+
+/* DESTINY v4.7 — Gestes tactiles messages (Web/PWA/Android/iOS browser) */
+#chatMessages{touch-action:pan-y}
+.chat-row{touch-action:pan-y;user-select:none;-webkit-user-select:none}
+.chat-bubble{transition:transform .16s ease,box-shadow .16s ease}
+.chat-row.chat-gesture-active .chat-bubble{transition:none}
+.chat-row.chat-gesture-ready .chat-bubble{box-shadow:0 0 0 1px rgba(208,176,113,.34),0 7px 20px rgba(0,0,0,.20)}
+.chat-row::after{content:"↩";position:absolute;top:50%;transform:translateY(-50%) scale(.72);opacity:0;color:var(--gold);font-size:20px;font-weight:800;pointer-events:none;transition:opacity .12s ease,transform .12s ease}
+.chat-row.mine::after{left:8px}
+.chat-row.theirs::after{right:8px}
+.chat-row.chat-gesture-ready::after{opacity:.9;transform:translateY(-50%) scale(1)}
+
 /* DESTINY v4.6 — Cœur de marque */
 .destiny-heart{display:inline-block;vertical-align:middle;filter:drop-shadow(0 0 16px rgba(145,129,255,.22))}
 .destiny-heart-lg{width:92px;height:82px;margin:18px auto 16px;display:block}
@@ -2227,6 +2239,94 @@ function chatReplyFromButton(btn){
 }
 function replyButtonHtml(){return `<button class="chat-reply-btn" type="button" onclick="chatReplyFromButton(this)" title="Répondre" aria-label="Répondre à ce message">↩</button>`}
 
+
+
+// DESTINY v4.7 — Swipe gauche/droite + appui long pour répondre.
+// Pointer Events fonctionne dans Chrome, Samsung Internet, Safari iOS et en PWA.
+const chatGestureState={
+  pointerId:null,row:null,startX:0,startY:0,lastX:0,lastY:0,
+  longTimer:null,longFired:false,swiping:false
+};
+function clearChatGesture(resetTransform=true){
+  if(chatGestureState.longTimer){clearTimeout(chatGestureState.longTimer);chatGestureState.longTimer=null}
+  const row=chatGestureState.row;
+  if(row){
+    row.classList.remove("chat-gesture-active","chat-gesture-ready");
+    if(resetTransform){const bubble=row.querySelector(".chat-bubble");if(bubble)bubble.style.transform=""}
+  }
+  chatGestureState.pointerId=null;chatGestureState.row=null;chatGestureState.swiping=false;
+}
+function triggerChatGestureReply(row){
+  if(!row)return;
+  setChatReply(row.dataset.replyName||"Message",row.dataset.replyText||"");
+  try{if(navigator.vibrate)navigator.vibrate(18)}catch{}
+}
+function installChatGestures(){
+  const box=document.getElementById("chatMessages");
+  if(!box || box.dataset.gesturesInstalled==="1")return;
+  box.dataset.gesturesInstalled="1";
+
+  box.addEventListener("contextmenu",e=>{
+    if(e.target.closest(".chat-row"))e.preventDefault();
+  });
+
+  box.addEventListener("pointerdown",e=>{
+    if(e.pointerType==="mouse" && e.button!==0)return;
+    if(e.target.closest(".chat-reply-btn"))return;
+    const row=e.target.closest(".chat-row");
+    if(!row)return;
+    clearChatGesture();
+    chatGestureState.pointerId=e.pointerId;
+    chatGestureState.row=row;
+    chatGestureState.startX=chatGestureState.lastX=e.clientX;
+    chatGestureState.startY=chatGestureState.lastY=e.clientY;
+    chatGestureState.longFired=false;
+    chatGestureState.swiping=false;
+    row.classList.add("chat-gesture-active");
+    try{row.setPointerCapture(e.pointerId)}catch{}
+    chatGestureState.longTimer=setTimeout(()=>{
+      if(chatGestureState.row!==row || chatGestureState.swiping)return;
+      chatGestureState.longFired=true;
+      row.classList.add("chat-gesture-ready");
+      triggerChatGestureReply(row);
+      setTimeout(()=>clearChatGesture(),90);
+    },520);
+  },{passive:true});
+
+  box.addEventListener("pointermove",e=>{
+    if(e.pointerId!==chatGestureState.pointerId || !chatGestureState.row)return;
+    chatGestureState.lastX=e.clientX;chatGestureState.lastY=e.clientY;
+    const dx=e.clientX-chatGestureState.startX;
+    const dy=e.clientY-chatGestureState.startY;
+    if(Math.abs(dy)>12 && Math.abs(dy)>Math.abs(dx)){
+      clearChatGesture();
+      return;
+    }
+    if(Math.abs(dx)>8){
+      chatGestureState.swiping=true;
+      if(chatGestureState.longTimer){clearTimeout(chatGestureState.longTimer);chatGestureState.longTimer=null}
+      const limited=Math.max(-68,Math.min(68,dx));
+      const bubble=chatGestureState.row.querySelector(".chat-bubble");
+      if(bubble)bubble.style.transform=`translateX(${limited}px)`;
+      chatGestureState.row.classList.toggle("chat-gesture-ready",Math.abs(dx)>=48);
+    }
+  },{passive:true});
+
+  const finish=e=>{
+    if(e.pointerId!==chatGestureState.pointerId || !chatGestureState.row)return;
+    const row=chatGestureState.row;
+    const dx=chatGestureState.lastX-chatGestureState.startX;
+    const shouldReply=!chatGestureState.longFired && chatGestureState.swiping && Math.abs(dx)>=48;
+    if(shouldReply)triggerChatGestureReply(row);
+    clearChatGesture();
+  };
+  box.addEventListener("pointerup",finish,{passive:true});
+  box.addEventListener("pointercancel",()=>clearChatGesture(),{passive:true});
+  box.addEventListener("lostpointercapture",()=>{
+    if(chatGestureState.row && !chatGestureState.longFired)clearChatGesture();
+  },{passive:true});
+}
+
 function appendLiveMessage(msg){
   const box=document.getElementById("chatMessages");
   if(!box || !msg || !msg.content)return;
@@ -2439,6 +2539,8 @@ function answerAsk(){
 async function resetApp(){if(!confirm("Recommencer le DNA ? Tes réponses actuelles seront remplacées."))return;data.dimensions={};data.score=0;data.confidence=0;data.progress=0;data.qDraft={answers:[],currentIndex:0};save();if(authState.user){await Promise.allSettled([sb.from("dna_profiles").update({completed:false,updated_at:new Date().toISOString()}).eq("user_id",authState.user.id),sb.from("dna_questionnaires").upsert({user_id:authState.user.id,answers:[],current_index:0,completed:false,updated_at:new Date().toISOString()},{onConflict:"user_id"})])}render();go("dna")}
 if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}))}
 bootAuth();render();renderUnreadBadge();setTimeout(()=>preloadV2Summary(),1200);
+
+window.addEventListener("DOMContentLoaded",()=>{ installChatGestures(); });
 </script>
 </body>
 </html>
