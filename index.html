@@ -7,7 +7,7 @@
 <title>DESTINY v3.6 — TYPING INDICATOR</title>
 <link rel="manifest" href="./manifest.webmanifest">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<!-- DESTINY build v3.7-typing-bottom -->
+<!-- DESTINY build v3.8-typing-bottom -->
 <style>
 :root{--bg:#07080c;--panel:#11131a;--gold:#d0b071;--violet:#9181ff;--text:#f6f3ec;--muted:#999ba6;--line:#292c37}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(600px 300px at 50% -80px,#282033 0,#07080c 65%);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif}
@@ -1380,7 +1380,9 @@ async function sendInterest(){
 let unreadState={
   count:0,
   channel:null,
-  refreshTimer:null
+  refreshTimer:null,
+  pollTimer:null,
+  pollSeq:0
 };
 
 function renderUnreadBadge(){
@@ -1434,12 +1436,77 @@ async function markCurrentChatRead(){
   }
 }
 
-function scheduleUnreadRefresh(){
+function scheduleUnreadRefresh(delay=140){
   if(unreadState.refreshTimer)clearTimeout(unreadState.refreshTimer);
   unreadState.refreshTimer=setTimeout(()=>{
     unreadState.refreshTimer=null;
     loadUnreadCount();
-  },140);
+  },delay);
+}
+
+function bumpUnreadInstantly(){
+  unreadState.count=Math.max(0,Number(unreadState.count)||0)+1;
+  renderUnreadBadge();
+}
+
+function startUnreadPolling(){
+  if(unreadState.pollTimer){
+    clearTimeout(unreadState.pollTimer);
+    unreadState.pollTimer=null;
+  }
+  const seq=++unreadState.pollSeq;
+  const tick=async()=>{
+    if(seq!==unreadState.pollSeq || !authState.user)return;
+    await loadUnreadCount();
+    if(seq!==unreadState.pollSeq)return;
+    unreadState.pollTimer=setTimeout(tick,2000);
+  };
+  unreadState.pollTimer=setTimeout(tick,1200);
+}
+
+async function broadcastUnreadToPeer(payload){
+  const peerId=data.lastMatch?.userId;
+  if(!peerId || !payload?.match_id || !authState.user)return;
+
+  const ch=sb.channel(`destiny-unread-${peerId}`,{config:{broadcast:{self:false}}});
+  let finished=false;
+  const cleanup=()=>{
+    if(finished)return;
+    finished=true;
+    setTimeout(()=>sb.removeChannel(ch).catch(()=>{}),120);
+  };
+
+  try{
+    await new Promise((resolve,reject)=>{
+      const timeout=setTimeout(()=>reject(new Error("Unread broadcast timeout")),2500);
+      ch.subscribe(async status=>{
+        if(status==="SUBSCRIBED"){
+          clearTimeout(timeout);
+          try{
+            await ch.send({
+              type:"broadcast",
+              event:"unread-message",
+              payload:{
+                match_id:payload.match_id,
+                sender_id:authState.user.id,
+                recipient_id:peerId,
+                sent_at:Date.now(),
+                client_nonce:payload.client_nonce||null
+              }
+            });
+            resolve();
+          }catch(e){reject(e)}
+        }else if(status==="CHANNEL_ERROR" || status==="TIMED_OUT"){
+          clearTimeout(timeout);
+          reject(new Error("Unread broadcast channel error"));
+        }
+      });
+    });
+  }catch(e){
+    console.warn("Unread live broadcast",e);
+  }finally{
+    cleanup();
+  }
 }
 
 async function stopUnreadRealtime(){
@@ -1447,6 +1514,11 @@ async function stopUnreadRealtime(){
     clearTimeout(unreadState.refreshTimer);
     unreadState.refreshTimer=null;
   }
+  if(unreadState.pollTimer){
+    clearTimeout(unreadState.pollTimer);
+    unreadState.pollTimer=null;
+  }
+  unreadState.pollSeq++;
 
   if(unreadState.channel){
     try{
@@ -1467,7 +1539,28 @@ async function startUnreadRealtime(){
   const channelName=`destiny-unread-${authState.user.id}`;
 
   unreadState.channel=sb
-    .channel(channelName)
+    .channel(channelName,{config:{broadcast:{self:false}}})
+    .on(
+      "broadcast",
+      {event:"unread-message"},
+      ({payload})=>{
+        if(!payload || payload.recipient_id!==authState.user?.id)return;
+        if(payload.sender_id===authState.user?.id)return;
+
+        const chatView=document.getElementById("chat");
+        const currentMatch=data.lastMatch?.matchId;
+        const chatIsOpen=chatView?.classList.contains("active") && currentMatch && payload.match_id===currentMatch;
+
+        if(chatIsOpen){
+          setTimeout(()=>markCurrentChatRead().catch(()=>{}),60);
+        }else{
+          // Affichage immédiat : le badge ne dépend plus de postgres_changes.
+          bumpUnreadInstantly();
+          // Réconciliation avec Supabase quelques instants plus tard.
+          scheduleUnreadRefresh(350);
+        }
+      }
+    )
     .on(
       "postgres_changes",
       {
@@ -1492,7 +1585,9 @@ async function startUnreadRealtime(){
         }
       }
     )
-    .subscribe();
+    .subscribe(status=>{
+      if(status==="SUBSCRIBED")startUnreadPolling();
+    });
 }
 
 let chatState={
@@ -1933,6 +2028,10 @@ async function sendChatMessage(){
     };
     appendLiveMessage(livePayload);
 
+    // v3.8 : avertit aussi le destinataire lorsqu'il n'a PAS la conversation ouverte.
+    // Son badge "Match / Conversation" s'allume immédiatement sur Accueil, Profil, etc.
+    broadcastUnreadToPeer(livePayload).catch(()=>{});
+
     if(chatState.channel){
       try{
         await chatState.channel.send({
@@ -1977,11 +2076,13 @@ function chatKeyDown(event){
 window.addEventListener("focus",()=>{
   const chatView=document.getElementById("chat");
   if(chatView?.classList.contains("active"))forceChatSync();
+  loadUnreadCount().catch(()=>{});
 });
 document.addEventListener("visibilitychange",()=>{
   if(document.visibilityState==="visible"){
     const chatView=document.getElementById("chat");
     if(chatView?.classList.contains("active"))forceChatSync();
+    loadUnreadCount().catch(()=>{});
   }
 });
 window.addEventListener("pageshow",()=>{
