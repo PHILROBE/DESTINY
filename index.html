@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#07080c">
-<title>DESTINY v3.6 — TYPING INDICATOR</title>
+<title>DESTINY v5.0 — REALTIME CHAT FIX</title>
 <link rel="manifest" href="./manifest.webmanifest">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<!-- DESTINY build v4.9-realtime-persistent-match-bus -->
+<!-- DESTINY build v5.0-realtime-chat-fix -->
 <style>
 :root{--bg:#07080c;--panel:#11131a;--gold:#d0b071;--violet:#9181ff;--text:#f6f3ec;--muted:#999ba6;--line:#292c37}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(600px 300px at 50% -80px,#282033 0,#07080c 65%);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif}
@@ -535,7 +535,7 @@ textarea,input,select{width:100%;background:#0e1016;border:1px solid var(--line)
     <button class="btn dark" style="margin-top:14px" onclick="logout()">SE DÉCONNECTER</button>
     <button class="btn dark danger" style="margin-top:10px" onclick="clearLocalData()">EFFACER LES DONNÉES LOCALES</button>
   </div>
-  <div class="notice">Version v4.9 REALTIME PERSISTENT MATCH BUS : profil de match révélé conservé, accès direct à la conversation, détails de compatibilité repliables, messagerie privée temps réel renforcée, indicateur de saisie et compteur de messages non lus synchronisés dans Supabase. Les réponses sensibles restent privées.</div>
+  <div class="notice">Version v5.0 REALTIME CHAT FIX : profil de match révélé conservé, accès direct à la conversation, détails de compatibilité repliables, messagerie privée temps réel renforcée, indicateur de saisie et compteur de messages non lus synchronisés dans Supabase. Les réponses sensibles restent privées.</div>
   <button class="btn dark" style="margin-top:12px" onclick="resetApp()">Recommencer le DNA</button>
 </div>
 
@@ -2026,9 +2026,9 @@ function startChatPolling(){
     if(!chatView?.classList.contains("active"))return;
     await forceChatSync();
     if(seq!==chatState.pollSeq)return;
-    chatState.pollTimer=setTimeout(tick,650);
+    chatState.pollTimer=setTimeout(tick,1500);
   };
-  chatState.pollTimer=setTimeout(tick,300);
+  chatState.pollTimer=setTimeout(tick,700);
 }
 
 async function startChatRealtime(){
@@ -2056,8 +2056,10 @@ async function startChatRealtime(){
   // Les deux membres du match utilisent exactement le même canal.
   const channelName=`destiny-chat-${m.matchId}`;
 
+  // v5.0 — canal dédié à la conversation.
+  // Le canal persistant du match reste le filet de sécurité fiable entre navigateurs.
   chatState.channel=sb
-    .channel(channelName,{config:{broadcast:{self:false}}})
+    .channel(channelName,{config:{broadcast:{self:false},presence:{key:authState.user.id}}})
     .on(
       "postgres_changes",
       {
@@ -2141,10 +2143,13 @@ async function startChatRealtime(){
 
       if(statusEvent==="SUBSCRIBED"){
         el.textContent="● MATCH MUTUEL · TEMPS RÉEL ACTIF";
+        forceChatSync().catch(()=>{});
       }else if(statusEvent==="CHANNEL_ERROR" || statusEvent==="TIMED_OUT"){
         el.textContent="◌ MATCH MUTUEL · synchronisation active";
+        ensureUnreadRealtimeForCurrentMatch().catch(()=>{});
       }else if(statusEvent==="CLOSED"){
         el.textContent="◌ MATCH MUTUEL · reconnexion automatique";
+        ensureUnreadRealtimeForCurrentMatch().catch(()=>{});
       }
     });
 
@@ -2506,6 +2511,7 @@ async function sendChatMessage(){
     const livePayload={
       match_id:m.matchId,
       sender_id:authState.user.id,
+      recipient_id:m.userId,
       content:storedContent,
       created_at:new Date().toISOString(),
       client_nonce:`${authState.user.id}-${Date.now()}-${Math.random().toString(36).slice(2)}`
